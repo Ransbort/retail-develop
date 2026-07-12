@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "creation": "2026-05-02 02:06:34.533335",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "program_name",
+  "company",
+  "points_per_amount",
+  "amount_per_point",
+  "points_amount_ratio",
+  "welcome_points",
+  "referral_points",
+  "tiers_section",
+  "tiers",
+  "rewards_section",
+  "rewards",
+  "is_active"
+ ],
+ "fields": [
+  {
+   "fieldname": "program_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Program Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "description": "\u0639\u062f\u062f \u0627\u0644\u0646\u0642\u0627\u0637 \u0644\u0643\u0644 \u0648\u062d\u062f\u0629 \u0639\u0645\u0644\u0629",
+   "fieldname": "points_per_amount",
+   "fieldtype": "Float",
+   "label": "Points per Amount"
+  },
+  {
+   "default": "0.1",
+   "description": "\u0642\u064a\u0645\u0629 \u0627\u0644\u0646\u0642\u0637\u0629 \u0627\u0644\u0648\u0627\u062d\u062f\u0629 \u0628\u0627\u0644\u0639\u0645\u0644\u0629",
+   "fieldname": "amount_per_point",
+   "fieldtype": "Float",
+   "label": "Amount per Point"
+  },
+  {
+   "default": "10",
+   "description": "\u0627\u0644\u0645\u0628\u0644\u063a \u0627\u0644\u0645\u0637\u0644\u0648\u0628 \u0644\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u0649 \u0646\u0642\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
+   "fieldname": "points_amount_ratio",
+   "fieldtype": "Float",
+   "label": "Amount to earn 1 point"
+  },
+  {
+   "default": "100",
+   "fieldname": "welcome_points",
+   "fieldtype": "Int",
+   "label": "Welcome Points"
+  },
+  {
+   "default": "50",
+   "fieldname": "referral_points",
+   "fieldtype": "Int",
+   "label": "Referral Points"
+  },
+  {
+   "fieldname": "tiers_section",
+   "fieldtype": "Section Break",
+   "label": "Membership Tiers"
+  },
+  {
+   "fieldname": "tiers",
+   "fieldtype": "Table",
+   "label": "Tiers",
+   "options": "Loyalty Tier"
+  },
+  {
+   "fieldname": "rewards_section",
+   "fieldtype": "Section Break",
+   "label": "Available Rewards"
+  },
+  {
+   "fieldname": "rewards",
+   "fieldtype": "Table",
+   "label": "Rewards",
+   "options": "Loyalty Reward"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  }
+ ],
+ "links": [],
+ "modified": "2026-05-17 14:57:30.628176",
+ "modified_by": "Administrator",
+ "module": "Retail",
+ "name": "Loyalty Program",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Customer"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

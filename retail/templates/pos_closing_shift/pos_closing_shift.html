@@ -1,0 +1,146 @@
+<div class="pos-summary">
+    <div class="summary-card">
+        <div class="card-title">{{ _("Sales Summary") }}</div>
+
+        <div class="summary-grid">
+
+            <div class="summary-item">
+                <span class="label">{{ _('Grand Total') }}</span>
+                <span class="value">
+                    {{ frappe.utils.fmt_money(data.grand_total or '', currency=currency) }}
+                </span>
+            </div>
+
+            <div class="summary-item">
+                <span class="label">{{ _('Net Total') }}</span>
+                <span class="value">
+                    {{ frappe.utils.fmt_money(data.net_total or '', currency=currency) }}
+                </span>
+            </div>
+
+            <div class="summary-item">
+                <span class="label">{{ _('Total Quantity') }}</span>
+                <span class="value">{{ data.total_quantity or 0 }}</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===== PAYMENTS ===== -->
+    <div class="summary-card">
+        <div class="card-title">{{ _("Mode of Payments") }}</div>
+
+        <div class="payment-list">
+            {% for d in data.payment_reconciliation %}
+            <div class="payment-row">
+                <div class="payment-name">{{ d.mode_of_payment }}</div>
+                <div class="payment-amount">
+                    {{ frappe.utils.fmt_money(
+                        (d.expected_amount - d.opening_amount),
+                        currency=currency
+                    ) }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ===== TAXES ===== -->
+    {% if data.taxes %}
+    <div class="summary-card">
+        <div class="card-title">{{ _("Taxes") }}</div>
+
+        <div class="tax-list">
+            {% for d in data.taxes %}
+            <div class="tax-row">
+                <div class="tax-account">{{ d.account_head }}</div>
+                <div class="tax-rate">{{ d.rate }}%</div>
+                <div class="tax-amount">
+                    {{ frappe.utils.fmt_money(d.amount, currency=currency) }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+<style>
+.pos-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Card */
+.summary-card {
+    background: #fff;
+    border: 1px solid #e6e8eb;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Title */
+.card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+/* GRID */
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.summary-item .label {
+    color: #374151;
+    font-size: 13px;
+}
+
+.summary-item .value {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* PAYMENTS */
+.payment-row,
+.tax-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px dashed #eee;
+}
+
+.payment-name,
+.tax-account {
+    font-size: 13px;
+    color: #374151;
+}
+
+.payment-amount,
+.tax-amount {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* TAX META */
+.tax-rate {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+</style>

@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "creation": "2026-05-02 02:06:34.782846",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "reward_title",
+  "description",
+  "icon",
+  "points_required",
+  "reward_type",
+  "reward_value",
+  "is_active"
+ ],
+ "fields": [
+  {
+   "fieldname": "reward_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reward Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "label": "Icon (Emoji)"
+  },
+  {
+   "fieldname": "points_required",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Points Required",
+   "reqd": 1
+  },
+  {
+   "default": "Fixed Discount",
+   "fieldname": "reward_type",
+   "fieldtype": "Select",
+   "label": "Reward Type",
+   "options": "Fixed Discount\nPercentage Discount\nFree Shipping"
+  },
+  {
+   "fieldname": "reward_value",
+   "fieldtype": "Float",
+   "label": "Reward Value"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-17 14:57:22.912524",
+ "modified_by": "Administrator",
+ "module": "Retail",
+ "name": "Loyalty Reward",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+__pycache__/
+*.pyc
+sites/*/private/
+sites/*/public/files/
+.DS_Store
+videos/serial_no_search_mode.webm
+videos/serial_no_search_mode.webm
