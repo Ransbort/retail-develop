@@ -1,0 +1,36 @@
+test.js
+# env
+.env
+*.env
+
+# node
+node_modules/
+dist/
+
+# certificates
+certs/
+*.pem
+*.key
+
+# binaries
+*.deb
+cloudflared-linux-amd64.deb
+
+
+README.md
+architecture.md
+READMEREQ.md
+business.md
+readme2.md
+shouldimplemet.md
+Project_Completion_Report.md
+mkcert-v1.4.4-linux-amd64
+# logs
+*.log
+
+# cache
+.cache/
+
+# npm lock (using yarn instead)
+package-lock.json
+

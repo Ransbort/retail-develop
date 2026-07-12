@@ -1,0 +1,566 @@
+/* ./src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────── */
+/*  Website CSS                                                   */
+/*  DARK THEME  —  Deep Emerald / Midnight Teal                  */
+/*  Mood: rich, premium, easy on the eyes                       */
+/* ─────────────────────────────────────────────────────────── */
+.theme-dark {
+    --bg: linear-gradient(160deg, #050d10 0%, #0a1a1f 40%, #071219 100%);
+    --blob1: rgba(20, 184, 166, 0.12);
+    /* teal glow */
+    --blob2: rgba(5, 150, 105, 0.09);
+    /* emerald glow */
+
+    --card-bg: rgba(90, 124, 136, 0.8);
+    --card-border: rgba(20, 184, 166, 0.14);
+
+    --heading: #e2f5f1;
+    --subtext: #7fb8ac;
+
+    --input-bg: rgba(5, 18, 22, 0.85);
+    --input-border: rgba(20, 184, 166, 0.22);
+    --input-color: #e2f5f1;
+    --input-disabled: rgba(5, 18, 22, 0.50);
+
+    --tab-bar: rgba(8, 22, 27, 0.92);
+    --tab-bar-border: rgba(20, 184, 166, 0.16);
+    --tab-inactive: #5a8f85;
+
+    --divider: rgba(20, 184, 166, 0.12);
+
+    --cancel-border: rgba(20, 184, 166, 0.25);
+    --cancel-color: #a8d5cc;
+    --cancel-hover: rgba(20, 184, 166, 0.08);
+
+    --footer-bg: linear-gradient(to top, #020b0e, #061318);
+    --footer-border: rgba(20, 184, 166, 0.10);
+
+    --modal-bg: #081519;
+
+    --strength-empty: #0d2a30;
+    --track-bg: #0d2a30;
+    --track-border: #154540;
+    --thumb-bg: linear-gradient(135deg, #0d9488, #10b981);
+
+    --btn-add-cart-bg: linear-gradient(135deg, #0d9488, #059669);
+    --btn-add-cart-hover: linear-gradient(135deg, #0f766e, #047857);
+
+    --discount-label-color: #fb7185;
+    --price-color: #ccfbf1;
+
+    --panel-bg: rgba(10, 28, 34, 0.70);
+    /* sidebar panels */
+    --cols: 3;
+    ----spacing-x: 10px;
+}
+
+/* ─────────────────────────────────────────────────────────── */
+/*  LIGHT THEME  —  Warm Cream / Soft Sage                    */
+/*  Mood: fresh, clean, inviting — not sterile white          */
+/* ─────────────────────────────────────────────────────────── */
+.theme-light {
+    --bg: linear-gradient(160deg, #f5f7f2 0%, #eef3ee 50%, #f7f5f0 100%);
+    --blob1: rgba(16, 185, 129, 0.08);
+    --blob2: rgba(6, 148, 162, 0.06);
+
+    --card-bg: rgba(255, 255, 255, 0.97);
+    --card-border: rgba(80, 160, 130, 0.16);
+
+    --heading: #1a2e26;
+    --subtext: #4d7060;
+
+    --input-bg: rgba(240, 240, 240, 0.98);
+    --input-border: rgba(80, 160, 130, 0.28);
+    --input-color: #1a2e26;
+    --input-disabled: rgba(230, 235, 228, 0.90);
+
+    --tab-bar: rgba(255, 253, 248, 0.95);
+    --tab-bar-border: rgba(80, 160, 130, 0.18);
+    --tab-inactive: #7aab90;
+
+    --divider: rgba(20, 184, 166, 0.12);
+
+    --cancel-border: rgba(80, 160, 130, 0.30);
+    --cancel-color: #2d5c48;
+    --cancel-hover: rgba(80, 160, 130, 0.08);
+
+    --footer-bg: linear-gradient(to top, #dfe8dc, #eef3ee);
+    --footer-border: rgba(80, 160, 130, 0.14);
+
+    --modal-bg: #fdfcf8;
+
+    --strength-empty: #cdddd5;
+    --track-bg: #d8e8df;
+    --track-border: #b0ccbc;
+    --thumb-bg: linear-gradient(135deg, #059669, #0d9488);
+
+    --btn-add-cart-bg: linear-gradient(135deg, #059669, #0d9488);
+    --btn-add-cart-hover: linear-gradient(135deg, #047857, #0f766e);
+
+    --discount-label-color: #dc2626;
+    --price-color: #1a2e26;
+
+    --panel-bg: rgba(240, 246, 240, 0.90);
+    /* sidebar panels */
+    --cols: 3;
+    ----spacing-x: 10px;
+    --spacing-y: 15px
+}
+
+.page-wrapper {
+    background: var(--bg)
+}
+
+.blob-1 {
+    background: var(--blob1)
+}
+
+.blob-2 {
+    background: var(--blob2)
+}
+
+.heading-text {
+    color: var(--heading);
+    transition: color .4s
+}
+
+.subtext {
+    color: var(--subtext);
+    transition: color .4s
+}
+
+.breadcrumb-text {
+    color: var(--subtext);
+    transition: color .4s
+}
+
+.card-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(12px);
+    transition: background .4s, border-color .4s
+}
+
+.modal-panel {
+    background: var(--modal-bg);
+    transition: background .4s
+}
+
+.tab-bar {
+    background: var(--tab-bar);
+    border: 1px solid var(--tab-bar-border);
+    backdrop-filter: blur(8px);
+    transition: background .4s, border-color .4s
+}
+
+.tab-inactive {
+    color: var(--tab-inactive);
+    transition: color .2s
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px
+}
+
+.field-label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--subtext);
+    letter-spacing: .03em;
+    transition: color .4s
+}
+
+.field-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 10px;
+    color: var(--input-color);
+    font-size: .9rem;
+    outline: none;
+    transition: border-color .25s, box-shadow .25s, background .4s, color .4s
+}
+
+.field-input::placeholder {
+    color: var(--subtext);
+    opacity: .7
+}
+
+.field-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, .18)
+}
+
+.field-input:disabled {
+    background: var(--input-disabled);
+    opacity: .65;
+    cursor: not-allowed
+}
+
+.btn-cancel {
+    border: 1px solid var(--cancel-border);
+    color: var(--cancel-color);
+    transition: background .2s, color .2s, border-color .2s
+}
+
+.btn-cancel:hover {
+    background: var(--cancel-hover)
+}
+
+.divider-top {
+    border-top: 1px solid var(--divider);
+    transition: border-color .4s
+}
+
+.divider-bottom {
+    border-bottom: 1px solid var(--divider);
+    transition: border-color .4s
+}
+
+.strength-empty {
+    background: var(--strength-empty)
+}
+
+.footer-bg {
+    background: var(--footer-bg);
+    transition: background .4s
+}
+
+.footer-border {
+    border-color: var(--footer-border);
+    transition: border-color .4s
+}
+
+.theme-toggle {
+    cursor: pointer
+}
+
+.theme-toggle .track {
+    background: var(--track-bg);
+    border: 1px solid var(--track-border);
+    transition: background .5s, border-color .5s
+}
+
+.theme-toggle .thumb {
+    background: var(--thumb-bg);
+    transition: transform .5s cubic-bezier(.34, 1.56, .64, 1), background .5s
+}
+
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+    transition: all .3s ease
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+    transform: translateX(30px);
+    opacity: 0
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+    transition: all .35s ease
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+    transform: translateY(-12px);
+    opacity: 0
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity .25s ease
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0
+}
+
+::-webkit-scrollbar {
+    width: 6px
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, .5)
+}
+
+::-webkit-scrollbar-thumb {
+    background: #10b981;
+    border-radius: 4px
+}
+
+.slide-enter-active,
+.slide-leave-active {
+    transition: all .3s ease
+}
+
+.slide-enter-from,
+.slide-leave-to {
+    transform: translateX(-100%)
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none
+}
+
+.page-wrapper {
+    background: var(--bg)
+}
+
+.blob-1 {
+    background: var(--blob1)
+}
+
+.blob-2 {
+    background: var(--blob2)
+}
+
+.heading-text {
+    color: var(--heading);
+    transition: color .4s;
+}
+
+.subtext {
+    color: var(--subtext);
+    transition: color .4s;
+}
+
+.card-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(12px);
+}
+
+.field-input {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-color);
+}
+
+.footer-bg {
+    background: var(--footer-bg);
+}
+
+.footer-border {
+    border-color: var(--footer-border);
+}
+
+.modal-panel {
+    background: var(--modal-bg);
+}
+
+.card-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(12px);
+    transition: background .4s, border-color .4s;
+}
+
+.heading-text {
+    color: var(--heading);
+    transition: color .4s;
+}
+
+.subtext {
+    color: var(--subtext);
+    transition: color .4s;
+}
+
+/* ========= UTILITIES ========= */
+
+.panel-bg {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+}
+
+/* =========  ========= */
+/*  Myaccount.vue*/
+/* =========  ========= */
+.heading-text {
+    color: var(--heading);
+    transition: color .4s
+}
+
+.subtext {
+    color: var(--subtext);
+    transition: color .4s
+}
+
+.breadcrumb-text {
+    color: var(--subtext);
+    transition: color .4s
+}
+
+.card-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(12px);
+    transition: background .4s, border-color .4s
+}
+
+.modal-panel {
+    background: var(--modal-bg);
+    transition: background .4s
+}
+
+.tab-bar {
+    background: var(--tab-bar);
+    border: 1px solid var(--tab-bar-border);
+    backdrop-filter: blur(8px);
+    transition: background .4s, border-color .4s
+}
+
+.tab-inactive {
+    color: var(--tab-inactive);
+    transition: color .2s
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px
+}
+
+.field-label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--subtext);
+    letter-spacing: .03em;
+    transition: color .4s
+}
+
+.field-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 10px;
+    color: var(--input-color);
+    font-size: .9rem;
+    outline: none;
+    transition: border-color .25s, box-shadow .25s, background .4s, color .4s
+}
+
+.field-input::placeholder {
+    color: var(--subtext);
+    opacity: .7
+}
+
+.field-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, .18)
+}
+
+.field-input:disabled {
+    background: var(--input-disabled);
+    opacity: .65;
+    cursor: not-allowed
+}
+
+.btn-cancel {
+    border: 1px solid var(--cancel-border);
+    color: var(--cancel-color);
+    transition: background .2s, color .2s, border-color .2s
+}
+
+.btn-cancel:hover {
+    background: var(--cancel-hover)
+}
+
+.divider-top {
+    border-top: 1px solid var(--divider);
+    transition: border-color .4s
+}
+
+.divider-bottom {
+    border-bottom: 1px solid var(--divider);
+    transition: border-color .4s
+}
+
+.strength-empty {
+    background: var(--strength-empty)
+}
+
+.footer-bg {
+    background: var(--footer-bg);
+    transition: background .4s
+}
+
+.footer-border {
+    border-color: var(--footer-border);
+    transition: border-color .4s
+}
+
+.theme-toggle {
+    cursor: pointer
+}
+
+.theme-toggle .track {
+    background: var(--track-bg);
+    border: 1px solid var(--track-border);
+    transition: background .5s, border-color .5s
+}
+
+.theme-toggle .thumb {
+    background: var(--thumb-bg);
+    transition: transform .5s cubic-bezier(.34, 1.56, .64, 1), background .5s
+}
+
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+    transition: all .3s ease
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+    transform: translateX(30px);
+    opacity: 0
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+    transition: all .35s ease
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+    transform: translateY(-12px);
+    opacity: 0
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity .25s ease
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0
+}
+
+::-webkit-scrollbar {
+    width: 6px
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, .5)
+}
+
+::-webkit-scrollbar-thumb {
+    background: #10b981;
+    border-radius: 4px
+}
