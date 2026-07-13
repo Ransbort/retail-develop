@@ -8,7 +8,7 @@
       @shift-error="handleShiftError"
     />
 
-    <div class="hide-print flex flex-row pl-0 p-4 h-full gap-2 antialiased"
+    <div class="hide-print flex flex-row pl-0 p-4 min-h-0 gap-2 antialiased"
         :style="{
         background: isDark ? 'var(--bg)' : 'var(--card-bg)',
         color: 'var(--text-main)'
