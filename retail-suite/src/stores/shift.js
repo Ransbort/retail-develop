@@ -404,14 +404,20 @@ export const useShiftStore = defineStore('shift', {
       }
     },
 
-    async getCustomers(pos_profile) {
+    async getCustomers(pos_profile, searchTerm = '') {
       try {
           if (isOffline.value) {
-              return await db.customers.toArray()
+              const all = await db.customers.toArray()
+              if (!searchTerm) return all
+              const term = searchTerm.toLowerCase()
+              return all.filter(c =>
+                (c.customer_name || '').toLowerCase().includes(term) ||
+                (c.name || '').toLowerCase().includes(term)
+              )
           }
 
           const response = await call('retail.retail.api.posapp.get_customer_names',
-              { pos_profile: pos_profile}
+              { pos_profile: pos_profile, search_term: searchTerm }
           )
           console.log("API Get Customers from Frappe DB", response)
           this.customers = response
