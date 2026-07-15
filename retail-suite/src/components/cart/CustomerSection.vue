@@ -1,8 +1,9 @@
 <!-- CustomerSection.vue -->
 <template>
   <div
-    class="p-4"
+    class="p-4 relative"
     :style="{ borderBottom: '1px solid var(--card-border)' }"
+    ref="rootEl"
   >
     <div
       class="flex items-stretch rounded-lg overflow-hidden"
@@ -11,30 +12,77 @@
         background: 'var(--input-bg)'
       }"
     >
-      <!-- Customer Select -->
-      <select
-        v-model="selectedCustomer"
-        @change="handleCustomerChange"
-        class="flex-grow p-2 px-3 outline-none cursor-pointer transition-all"
-        :style="{
-          background: 'var(--input-bg)',
-          color: 'var(--text-main)',
-          border: 'none'
-        }"
-      >
-        <option value="">{{ __('Create New Customer') }}</option>
-        <option
-          v-for="cust in customers"
-          :key="cust.name"
-          :value="cust.name"
+      <!-- Customer Search Input -->
+      <div class="relative flex-grow">
+        <input
+          type="text"
+          v-model="searchQuery"
+          @focus="openDropdown"
+          @input="onSearchInput"
+          @keydown.down.prevent="moveHighlight(1)"
+          @keydown.up.prevent="moveHighlight(-1)"
+          @keydown.enter.prevent="selectHighlighted"
+          @keydown.esc="closeDropdown"
+          :placeholder="__('Search or create customer...')"
+          class="w-full h-full p-2 px-3 outline-none transition-all"
+          :style="{
+            background: 'var(--input-bg)',
+            color: 'var(--text-main)',
+            border: 'none'
+          }"
+        />
+
+        <!-- Dropdown -->
+        <div
+          v-show="isDropdownOpen"
+          class="absolute z-20 left-0 right-0 mt-1 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+          :style="{
+            background: 'var(--input-bg)',
+            border: '1px solid var(--input-border)'
+          }"
         >
-          {{ cust.name }}
-        </option>
-      </select>
+          <div
+            class="px-3 py-2 cursor-pointer font-semibold flex items-center gap-2"
+            :class="{ 'ring-2': highlightedIndex === -1 }"
+            :style="{ color: primaryColor }"
+            @mousedown.prevent="createNew"
+          >
+            <span>+</span>
+            <span>{{ __('Create New Customer') }}</span>
+          </div>
+
+          <div
+            v-if="isSearching"
+            class="px-3 py-2 text-sm opacity-70"
+          >
+            {{ __('Searching...') }}
+          </div>
+
+          <div
+            v-else-if="!customers.length"
+            class="px-3 py-2 text-sm opacity-70"
+          >
+            {{ __('No customers found') }}
+          </div>
+
+          <div
+            v-for="(cust, idx) in customers"
+            :key="cust.name"
+            class="px-3 py-2 cursor-pointer transition-all"
+            :class="{ 'bg-black/5': highlightedIndex === idx }"
+            @mousedown.prevent="selectCustomer(cust)"
+          >
+            <div class="font-medium">{{ cust.customer_name || cust.name }}</div>
+            <div class="text-xs opacity-60" v-if="cust.customer_name && cust.customer_name !== cust.name">
+              {{ cust.name }}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Add Customer Button -->
       <button
-        @click="showAddCustomerModal = true"
+        @click="createNew"
         class="flex items-center gap-2 px-3 py-2 font-bold text-white focus:outline-none transition-all whitespace-nowrap shadow-sm"
         :style="{
           background: primaryColor,
@@ -69,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import UpdateCustomer from '../modals/UpdateCustomer.vue'
 import { useShiftStore } from '@/stores/shift.js'
 import { useSettingsStore } from '@/stores/settings'
@@ -87,87 +135,137 @@ const customerName = ref(null)
 const customer_info = ref({})
 const showAddCustomerModal = ref(false)
 
+const searchQuery = ref('')
+const isDropdownOpen = ref(false)
+const isSearching = ref(false)
+const highlightedIndex = ref(-1)
+const rootEl = ref(null)
+let debounceTimer = null
+let searchToken = 0
 
 const shiftStore = useShiftStore()
 const pos_profile = computed(() => shiftStore.pos_profile || {})
 
-const loadCustomers = async () => {
+const loadCustomers = async (term = '') => {
+  const token = ++searchToken
   try {
-    const customersList = await shiftStore.getCustomers(JSON.stringify(pos_profile.value))
-    console.log("customersList", customersList)
+    isSearching.value = true
+    const customersList = await shiftStore.getCustomers(JSON.stringify(pos_profile.value), term)
+    // ignore stale responses from an earlier keystroke
+    if (token !== searchToken) return customersList
     if (customersList) {
       customers.value = customersList
       return customersList
-    }else{
+    } else {
+      customers.value = []
       return "skipped"
     }
   } catch (e) {
     console.error('Failed to load customers:', e)
+  } finally {
+    if (token === searchToken) isSearching.value = false
   }
 }
 
-const handleCustomerChange = () => {
-  if (!selectedCustomer.value) {
-    // case: Create new customer
-    showAddCustomerModal.value = true
-    customerName.value = null
-    customer_info.value = {}
-  } else {
-    // case: Select existing customer
-    const cust = customers.value.find(c => c.name === selectedCustomer.value)
-    if (cust) {
-      console.log('Selected customer info:', cust)
-      customerName.value = cust.name
-      customer_info.value = { ...cust }
-      emit('customer-selected', cust)
-    }
-  }
+const onSearchInput = () => {
+  isDropdownOpen.value = true
+  highlightedIndex.value = -1
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    loadCustomers(searchQuery.value.trim())
+  }, 300)
 }
 
-
-const handleCustomerUpdated = async (updatedCustomer) => {
-
-  const res = await loadCustomers()
-  const existingIndex = res.findIndex(c => c.name === updatedCustomer.name)
-
-  if (existingIndex !== -1) {
-
-    customers.value[existingIndex] = { ...updatedCustomer }
-  } else {
-    customers.value.push({ ...updatedCustomer })
+const openDropdown = () => {
+  isDropdownOpen.value = true
+  if (!customers.value.length) {
+    loadCustomers(searchQuery.value.trim())
   }
-
-  customerName.value = updatedCustomer.name
-  customer_info.value = { ...updatedCustomer }
-  selectedCustomer.value = updatedCustomer.name
-  shiftStore.setCustomer(updatedCustomer)
-  emit('customer-selected', updatedCustomer)
 }
 
 const closeCustomerModal = () => {
   showAddCustomerModal.value = false
   const currentCustomer = shiftStore.$state.currentCustomer
   if (currentCustomer?.name) {
-    const cust = customers.value.find(c => c.name === currentCustomer.name)
-    if (cust) {
-      selectedCustomer.value = cust.name
-      customerName.value = cust.name
-      customer_info.value = { ...cust }
-      emit('customer-selected', cust)
-    }
+    applySelectedCustomer(currentCustomer)
   }
+}
+
+const closeDropdown = () => {
+  isDropdownOpen.value = false
+  highlightedIndex.value = -1
+}
+
+const handleClickOutside = (e) => {
+  if (rootEl.value && !rootEl.value.contains(e.target)) {
+    closeDropdown()
+  }
+}
+
+const applySelectedCustomer = (cust) => {
+  selectedCustomer.value = cust.name
+  customerName.value = cust.name
+  customer_info.value = { ...cust }
+  searchQuery.value = cust.customer_name || cust.name
+}
+
+const selectCustomer = (cust) => {
+  applySelectedCustomer(cust)
+  emit('customer-selected', cust)
+  closeDropdown()
+}
+
+const createNew = () => {
+  selectedCustomer.value = ''
+  customerName.value = null
+  customer_info.value = {}
+  showAddCustomerModal.value = true
+  closeDropdown()
+}
+
+const moveHighlight = (delta) => {
+  if (!isDropdownOpen.value) {
+    isDropdownOpen.value = true
+    return
+  }
+  const max = customers.value.length - 1
+  let next = highlightedIndex.value + delta
+  if (next < -1) next = max
+  if (next > max) next = -1
+  highlightedIndex.value = next
+}
+
+const selectHighlighted = () => {
+  if (highlightedIndex.value === -1) {
+    createNew()
+  } else if (customers.value[highlightedIndex.value]) {
+    selectCustomer(customers.value[highlightedIndex.value])
+  }
+}
+
+const handleCustomerUpdated = async (updatedCustomer) => {
+  const res = await loadCustomers(searchQuery.value.trim())
+  const list = Array.isArray(res) ? res : customers.value
+  const existingIndex = list.findIndex(c => c.name === updatedCustomer.name)
+
+  if (existingIndex !== -1) {
+    customers.value[existingIndex] = { ...updatedCustomer }
+  } else {
+    customers.value.push({ ...updatedCustomer })
+  }
+
+  applySelectedCustomer(updatedCustomer)
+  shiftStore.setCustomer(updatedCustomer)
+  emit('customer-selected', updatedCustomer)
 }
 
 watch(
   () => shiftStore.isShiftOpen,
   async (isOpen) => {
-    console.log("shift open changed", isOpen)
-
     if (!isOpen) return
 
     const list = await loadCustomers()
-
-    const customerList = list || customers.value
+    const customerList = Array.isArray(list) ? list : customers.value
 
     if (!customerList?.length || !shiftStore.pos_profile?.customer) return
 
@@ -177,10 +275,7 @@ watch(
       )
 
       if (defaultCustomer) {
-        selectedCustomer.value = defaultCustomer.name
-        customerName.value = defaultCustomer.name
-        customer_info.value = { ...defaultCustomer }
-
+        applySelectedCustomer(defaultCustomer)
         shiftStore.setCustomer(defaultCustomer)
         emit('customer-selected', defaultCustomer)
       }
@@ -189,17 +284,22 @@ watch(
 )
 
 onMounted(async () => {
+  document.addEventListener('mousedown', handleClickOutside)
+
   const list = await loadCustomers()
   const savedCustomer = shiftStore.$state.currentCustomer
   if (savedCustomer?.name && list) {
-    const exists = list.find(c => c.name === savedCustomer.name)
+    const listArr = Array.isArray(list) ? list : customers.value
+    const exists = listArr.find(c => c.name === savedCustomer.name)
     if (exists) {
-      selectedCustomer.value = exists.name
-      customerName.value = exists.name
-      customer_info.value = { ...exists }
+      applySelectedCustomer(exists)
       emit("customer-selected", exists)
     }
   }
 })
 
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+  clearTimeout(debounceTimer)
+})
 </script>
