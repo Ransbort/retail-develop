@@ -563,8 +563,6 @@ def _get_customer_names(pos_profile):
     customer_groups = get_customer_groups(pos_profile)
     if customer_groups:
         filters["customer_group"] = ["in", customer_groups]
-    else:
-        filters["name"] = pos_profile.get("customer")
 
     return frappe.db.get_all(
         "Customer",
