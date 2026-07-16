@@ -63,29 +63,33 @@ export const useCartStore = defineStore('cart', () => {
     cart.value.reduce((total, item) => total + Math.abs(item.qty), 0)
   )
 
+  // Rounded to whole currency units — this app's display (formatPrice)
+  // always shows 0 decimal places, so all downstream math (change,
+  // canSubmit, "NEED X MORE") must operate on the same rounded figure
+  // the customer actually sees, not the raw fractional rate.
   const netTotal = computed(() =>
-    cart.value.reduce((total, item) => total + item.rate * item.qty, 0)
+    Math.round(cart.value.reduce((total, item) => total + item.rate * item.qty, 0))
   )
 
   const subtotal = netTotal
 
   const taxAmount = computed(() =>
-    taxLines.value.reduce((sum, t) => sum + (t.amount || 0), 0)
+    Math.round(taxLines.value.reduce((sum, t) => sum + (t.amount || 0), 0))
   )
 
   const computedDiscountAmount = computed(() => {
-    if (discountAmount.value > 0) return discountAmount.value
+    if (discountAmount.value > 0) return Math.round(discountAmount.value)
     if (additionalDiscountPercentage.value <= 0) return 0
 
     const base = applyDiscountOn.value === DISCOUNT_ON.NET_TOTAL
       ? netTotal.value
       : netTotal.value + taxAmount.value
 
-    return Math.round(base * (additionalDiscountPercentage.value / 100) * 100) / 100
+    return Math.round(base * (additionalDiscountPercentage.value / 100))
   })
 
   const totalPrice = computed(() =>
-    netTotal.value + taxAmount.value - computedDiscountAmount.value
+    Math.round(netTotal.value + taxAmount.value - computedDiscountAmount.value)
   )
 
   const totalPaid = computed(() =>
