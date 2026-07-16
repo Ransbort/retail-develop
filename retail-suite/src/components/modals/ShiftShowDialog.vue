@@ -831,7 +831,7 @@ const printInvoice = async (invoice) => {
 
 const printShiftReport = () => {
   const s = toRaw(shift.value)
-  const html = buildShiftReportHTML(s)
+  const html = buildShiftReportHTML(s, currencyCode)  // pass it in
   const win = window.open('', '_blank')
   win.document.write(html)
   win.document.close()
