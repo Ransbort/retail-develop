@@ -6,7 +6,7 @@
     ref="rootEl"
   >
     <div
-      class="flex items-stretch rounded-lg overflow-hidden"
+      class="flex items-stretch rounded-lg"
       :style="{
         border: '1px solid var(--input-border)',
         background: 'var(--input-bg)'
