@@ -553,22 +553,28 @@ def get_customer_group_condition(pos_profile):
     return "1=1", []
 
 @frappe.whitelist()
-def get_customer_names(pos_profile):
-    return _get_customer_names(pos_profile)
+def get_customer_names(pos_profile, search_term="", limit=50):
+    return _get_customer_names(pos_profile, search_term, limit)
 
-def _get_customer_names(pos_profile):
+def _get_customer_names(pos_profile, search_term="", limit=50):
     pos_profile = frappe.parse_json(pos_profile)
     filters = {"disabled": 0}
 
-    customer_groups = get_customer_groups(pos_profile)
-    if customer_groups:
-        filters["customer_group"] = ["in", customer_groups]
+    or_filters = {}
+    if search_term:
+        like_term = f"%{search_term}%"
+        or_filters = {
+            "name": ["like", like_term],
+            "customer_name": ["like", like_term],
+        }
 
     return frappe.db.get_all(
         "Customer",
         filters=filters,
+        or_filters=or_filters,
         fields=["name", "customer_name", "territory", "customer_type"],
-        order_by="name asc"
+        order_by="name asc",
+        limit_page_length=frappe.utils.cint(limit) or 50,
     )
 
 def _has_address_data(payload: dict) -> bool:
