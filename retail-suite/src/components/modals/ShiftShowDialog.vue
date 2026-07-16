@@ -837,11 +837,10 @@ const printShiftReport = () => {
   win.document.close()
 }
 
-const buildShiftReportHTML = (s) => {
-  const currency = 'SAR'
-
+const buildShiftReportHTML = (s, currency) => {
   const fmt = (val) => `${currency} ${(val || 0).toFixed(2)}`
-
+  // ... rest unchanged, delete the old "const currency = 'SAR'" line
+	
   // Payment rows
   const paymentRows = (s.payments || []).map(pm => `
     <tr>
