@@ -121,7 +121,7 @@
       <!-- Divider -->
       <hr :style="{ borderColor: 'var(--card-border)' }" class="my-2">
 
-      <!-- Quick Cash Buttons -->
+      <!-- Quick Cash Buttons
       <div class="grid grid-cols-3 gap-2 mt-2">
         <button
           v-for="money in quickCashAmounts"
@@ -138,7 +138,7 @@
         >
           +{{ formatShortPrice(money) }}
         </button>
-      </div>
+      </div> -->
 
       <!-- Quick Actions -->
       <div class="grid grid-cols-2 gap-2 mt-2">
