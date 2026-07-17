@@ -1,7 +1,7 @@
 <template>
-  <div class="sticky top-0 z-0 flex px-2 flex-row gap-2">
+  <div class="sticky top-0 z-0 flex flex-row gap-2">
     <!-- Mode Toggle Button -->
-    <div
+    <!-- <div
       @click="switchMode()"
       class="absolute left-5 top-3 px-2 py-2 rounded-full text-white z-10 transition-colors duration-200 cursor-pointer"
       :class="{
@@ -28,10 +28,10 @@
           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
         />
       </svg>
-    </div>
+    </div> -->
     <!-- Loading Indicator -->
     <div v-if="isLoading" class="absolute right-5 top-3 px-2 py-2">
-      <div class="animate-spin h-6 w-6 border-2 border-cyan-500 border-t-transparent rounded-full"></div>
+      <div class="animate-spin h-4 w-4 border-2 border-cyan-500 border-t-transparent rounded-full"></div>
     </div>
 
     <!-- Results Count -->
@@ -43,13 +43,13 @@
     </div>
 
     <!-- Barcode Mode Indicator -->
-    <div
+    <!-- <div
       v-else-if="isScannerMode"
       class="absolute right-5 top-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center gap-1 animate-pulse"
     >
       <span class="w-2 h-2 bg-green-600 rounded-full"></span>
       {{ __('Scanner Mode') }}
-    </div>
+    </div> -->
 
     <!-- Clear Button -->
     <button
@@ -59,8 +59,8 @@
       type="button"
       title="Clear search"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M6 18L18 6M6 6l12 12" />
       </svg>
     </button>
 
@@ -68,7 +68,7 @@
       ref="mainInput"
       type="text"
       :value="modelValue"
-      class="rounded-3xl shadow text-lg w-full h-16 py-4 pl-16 pr-12 transition-all duration-300 focus:outline-none"
+      class="rounded-3xl shadow text-sm w-full p-4 transition-all duration-300 focus:outline-none"
       :style="{
         backgroundColor: 'var(--input-bg)',
         color: 'var(--input-text)',
@@ -80,6 +80,8 @@
       @input="handleInput"
       @keydown="handleKeydown"
     />
+
+    
   </div>
 </template>
 
@@ -98,7 +100,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: __('Search by product name or barcode')
+    default: __('Search by product name')
   },
   showResultsCount: {
     type: Boolean,
