@@ -577,6 +577,55 @@ def _get_customer_names(pos_profile, search_term="", limit=50):
         limit_page_length=frappe.utils.cint(limit) or 50,
     )
 
+@frappe.whitelist()
+def get_patient_names(search_term="", limit=50):
+    return _get_patient_names(search_term, limit)
+
+def _get_patient_names(search_term="", limit=50):
+    filters = {}
+
+    or_filters = {}
+    if search_term:
+        like_term = f"%{search_term}%"
+        or_filters = {
+            "name": ["like", like_term],
+            "patient_name": ["like", like_term],
+            "mobile": ["like", like_term],
+        }
+
+    return frappe.db.get_all(
+        "Patient",
+        filters=filters,
+        or_filters=or_filters,
+        fields=["name", "patient_name", "mobile", "sex", "customer"],
+        order_by="patient_name asc",
+        limit_page_length=frappe.utils.cint(limit) or 50,
+    )
+
+@frappe.whitelist()
+def get_patient_prescriptions(patient):
+    """Active, unbilled/partly-billed Medication Requests for this patient -
+    same filter set pharmacy_pos.js's load_patient_medications() already
+    uses on the desk-page side."""
+    if not frappe.db.exists("Patient", patient):
+        frappe.throw(_("Patient {0} not found").format(patient))
+
+    return frappe.db.get_all(
+        "Medication Request",
+        filters={
+            "patient": patient,
+            "docstatus": 1,
+            "status": "active-Medication Request Status",
+            "billing_status": ["in", ["Pending", "Partly Invoiced"]],
+        },
+        fields=[
+            "name", "medication", "medication_item", "quantity",
+            "qty_invoiced", "total_dispensable_quantity",
+            "dosage_form", "dosage", "period", "comment",
+        ],
+        limit_page_length=100,
+    )
+
 def _has_address_data(payload: dict) -> bool:
     """Only treat address as provided if a meaningful field was actually filled in.
     Skips 'country' (always has a default) and the is_primary/is_shipping flags."""
