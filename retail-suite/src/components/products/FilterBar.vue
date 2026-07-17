@@ -1,99 +1,187 @@
-<!-- FilterBar.vue -->
+<!-- ProductGrid.vue -->
 <template>
-  <div
-    class="flex flex-wrap items-center gap-3 px-3 py-2 rounded-2xl"
-    :style="{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }"
-  >
-    <!-- Price List -->
-    <div class="flex items-center gap-2 flex-1 min-w-0">
-      <span class="text-xs font-semibold whitespace-nowrap" :style="{ color: 'var(--text-muted)' }">
-        {{ __('Price List') }}
-      </span>
-      <select
-        :value="selectedPriceList"
-        class="flex-1 text-sm rounded-xl px-3 py-1.5 outline-none min-w-0 transition-all"
-        :style="selectStyle"
-        @change="emit('update:selectedPriceList', $event.target.value)"
+  <div class="h-full flex flex-col overflow-hidden gap-3">
+
+    <!-- Scrollable Grid Area -->
+    <div class="flex-1 overflow-y-auto">
+
+      <!-- Empty DB -->
+      <div
+        v-if="productsStore.products.length === 0 && !productsStore.isLoading"
+        class="select-noneflex flex-wrap content-center justify-center h-full opacity-25"
+        :style="{ background: 'var(--item-bg)', color: 'var(--text-main)' }"
       >
-        <option
-          v-for="pl in priceLists"
-          :key="pl.name"
-          :value="pl.name"
-        >
-          {{ pl.name }}
-        </option>
-      </select>
-    </div>
+        <div class="w-full flex flex-col items-center">
+          <EmptyDatabaseIcon />
+          <p class="text-xl mt-2">{{ __('There are no products') }}</p>
+        </div>
+      </div>
 
-    <!-- Divider -->
-    <div class="w-px h-6" :style="{ background: 'var(--card-border)' }" />
-
-    <!-- Warehouse -->
-    <div class="flex items-center gap-2 flex-1 min-w-0">
-      <span class="text-xs font-semibold whitespace-nowrap" :style="{ color: 'var(--text-muted)' }">
-        {{ __('Warehouse') }}
-      </span>
-      <select
-        :value="selectedWarehouse"
-        class="flex-1 text-sm rounded-xl px-3 py-1.5 outline-none min-w-0 transition-all"
-        :style="selectStyle"
-        @change="emit('update:selectedWarehouse', $event.target.value)"
+      <!-- Loading -->
+      <div
+        v-else-if="productsStore.isLoading"
+        class="select-none flex flex-wrap content-center justify-center h-full opacity-40"
+        :style="{ color: 'var(--text-main)' }"
       >
-        <option
-          v-for="wh in warehouses"
-          :key="wh.name"
-          :value="wh.name"
-        >
-          {{ wh.name }}
-        </option>
-      </select>
-    </div>
+        <div class="w-full text-center">
+          <LoadingSpinner />
+          <p class="text-xl mt-4">{{ __('Loading products') }}</p>
+        </div>
+      </div>
 
-    <!-- Reload Button -->
-    <button
-      class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95"
-      :style="{ background: primaryColor, color: '#fff', border: '1px solid var(--card-border)' }"
-      :disabled="isLoading"
-      @click="emit('reload')"
-    >
-      <span v-if="isLoading" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-      <span v-else>↻</span>
-      <span>{{ __('Reload') }}</span>
-    </button>
+      <!-- No Search Results -->
+      <div
+        v-else-if="filteredProducts.length === 0 && (searchKeyword || selectedCategory)"
+        class="select-none flex flex-wrap content-center justify-center h-full opacity-25"
+        :style="{ color: 'var(--text-main)' }"
+      >
+        <div class="w-full text-center">
+          <EmptySearchIcon />
+          <p class="text-xl mt-2">{{ __('No results') }}</p>
+          <p class="text-sm mt-1" :style="{ color: 'var(--text-muted)' }">
+            "{{ searchKeyword || selectedCategory }}"
+          </p>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div
+        v-else
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pb-4"
+      >
+        <ProductCard
+          v-for="product in filteredProducts"
+          :key="product.item_code"
+          :product="product"
+          :search-context="product.item_code === productsStore.searchContext?.item_code
+          ? productsStore.searchContext
+          : {}"
+          :is-in-cart="cartStore.isInCart(product.item_code)"
+          :cart-quantity="cartStore.getProductQuantity(product.item_code)"
+          @add-to-cart="handleAddToCart"
+          @remove-from-cart="handleRemoveFromCart"
+          @view-details="handleViewDetails"
+        />
+      </div>
+
+      <!-- Results count -->
+      <div
+        v-if="(searchKeyword || selectedCategory) && filteredProducts.length > 0"
+        class="text-center text-xs mt-2 pb-2"
+        :style="{ color: 'var(--text-muted)' }"
+      >
+        {{ filteredProducts.length }} {{ __('Products') }}
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-
-import { onMounted, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import ProductCard from './ProductCard.vue'
+// import CategoryFilter from './CategoryFilter.vue'
+import FilterBar from './FilterBar.vue'
 import { useProductsStore } from '@/stores/products'
+import { useCartStore } from '@/stores/cart'
+import EmptyDatabaseIcon from '@/components/icons/EmptyDatabaseIcon.svg'
+import EmptySearchIcon from '@/components/icons/EmptySearchIcon.svg'
+import { useShiftStore } from '@/stores/shift'
 import { storeToRefs } from 'pinia'
-import { useSettingsStore } from '@/stores/settings'
-const settingsStore = useSettingsStore()
-const settings = computed(() => settingsStore.settings)
-const primaryColor = computed(() => {
-  return settings.value?.appearance?.primaryColor || '#06b6d4'
+
+const shiftStore = useShiftStore()
+const { isShiftOpen } = storeToRefs(shiftStore)
+const props = defineProps({
+  searchKeyword: { type: String, default: '' }
+})
+const emit = defineEmits(['add-to-cart', 'remove-from-cart', 'view-details'])
+
+const productsStore = useProductsStore()
+const cartStore = useCartStore()
+const selectedCategory = ref('')
+
+const filteredProducts = computed(() => {
+  let list = productsStore.products
+  if (selectedCategory.value) {
+    list = list.filter(p => p.item_group === selectedCategory.value)
+  }
+  return list
 })
 
-defineProps({
-  selectedPriceList: { type: String, default: '' },
-  selectedWarehouse: { type: String, default: '' },
-  priceLists: { type: Array, default: () => [] },
-  warehouses: { type: Array, default: () => [] },
-  isLoading: { type: Boolean, default: false }
+const selectedPriceList = computed({
+  get: () => productsStore.selectedPriceList,
+  set: (val) => {
+    productsStore.selectedPriceList = val
+  }
 })
 
-const emit = defineEmits([
-  'update:selectedPriceList',
-  'update:selectedWarehouse',
-  'reload'
-])
-
-const selectStyle = {
-  background: 'var(--item-bg)',
-  color: 'var(--text-main)',
-  border: '1px solid var(--card-border)',
-  cursor: 'pointer'
+const selectedWarehouse = computed({
+  get: () => productsStore.selectedWarehouse,
+  set: (val) => {
+    productsStore.selectedWarehouse = val
+  }
+})
+const handleAddToCart = (p) => {
+  const added = cartStore.addToCart(p)
+  if (!added) {
+    window.$toast?.warning(__('Quantity exceeds available stock'))
+    return
+  }
+  emit('add-to-cart', p)
 }
 
+const handleRemoveFromCart = (p) => { cartStore.removeFromCart(p.item_code); emit('remove-from-cart', p) }
+const handleViewDetails  = (p) => emit('view-details', p)
+
+const LoadingSpinner = {
+  template: `
+    <div style="
+      display:inline-block; width:5rem; height:5rem;
+      border-radius:9999px; border:3px solid transparent;
+      border-bottom-color:var(--text-muted);
+      animation:spin 1s linear infinite;
+    "></div>
+    `
+  }
+
+watch(() => props.searchKeyword, async (kw) => {
+  await productsStore.searchProducts(kw)
+})
+
+watch(
+  () => [productsStore.selectedPriceList, productsStore.selectedWarehouse],
+  () => productsStore.loadProductsFromFrappeDB(true)
+)
+
+watch(isShiftOpen, async (val) => {
+  console.log('POS saw isShiftOpen change to:', val)
+
+  if (!val) return
+
+  try {
+    const shiftStore = useShiftStore()
+    const profile = shiftStore.pos_profile
+
+    if (!profile) {
+      console.warn('⏳ POS Profile not ready yet')
+      return
+    }
+
+    await productsStore.loadFilterOptions(profile)
+
+
+    if (!selectedPriceList.value)
+      selectedPriceList.value = profile.selling_price_list
+
+    if (!selectedWarehouse.value)
+      selectedWarehouse.value = profile.warehouse
+
+    await productsStore.loadProductsFromFrappeDB(true)
+
+  } catch (err) {
+    console.error('❌ POS init flow failed:', err)
+  }
+})
 </script>
+<style scoped>
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+</style>
