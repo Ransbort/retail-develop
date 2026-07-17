@@ -73,11 +73,11 @@
         </button>
       </div>
 
-      <!-- Customer Selector (sale + draft) -->
+      <!-- Customer Selector (sale + draft)
       <CustomerSection
         v-if="!cartStore.isReturnMode"
         @customer-selected="handleCustomerSelected"
-      />
+      /> -->
 
       <!-- Customer display (return mode) -->
       <div
@@ -198,6 +198,14 @@ import { ShoppingCart, FileText, Undo2 } from 'lucide-vue-next'
 ────────────────────────────────────────────────────────── */
 const props = defineProps({
   selectedInvoice: {
+    type:    Object,
+    default: null,
+  },
+  selectedCustomer: {
+    type:    Object,
+    default: null,
+  },
+  selectedPatient: {
     type:    Object,
     default: null,
   },
@@ -349,8 +357,14 @@ const handleCashUpdate = (amount) => cartStore.setCash(amount)
 const handleTransactionData = async (paymentData) => {
   if (cartStore.isReturnMode) return
 
-  if (!cartStore.currentCustomer && !shiftStore.$state.currentCustomer) {
-    window.$toast?.warning(__('Please select a customer'))
+  const billingCustomer =
+    props.selectedPatient?.customer ||   // Patient's auto-linked billing Customer, if selected
+    props.selectedCustomer?.name ||      // Was previously an unused prop - now actually used
+    cartStore.currentCustomer ||
+    shiftStore.$state.currentCustomer
+
+  if (!props.selectedPatient && !billingCustomer) {
+    window.$toast?.warning(__('Please select a customer or patient'))
     return
   }
 
@@ -359,7 +373,13 @@ const handleTransactionData = async (paymentData) => {
     mode:            cartStore.mode,
     transactionType: cartStore.isDraftMode ? 'draft' : 'sale',
     draftName:       cartStore.isDraftMode ? cartStore.currentDraftName : undefined,
-    customer:        cartStore.currentCustomer || shiftStore.$state.currentCustomer,
+    customer:        billingCustomer,
+    // Selecting a patient outranks manual customer choice for billing,
+    // same as pharmacy_pos.js's patient_field.onchange handler. `patient`
+    // here maps to Sales Invoice's `patient` field (Healthcare app); the
+    // actual party billed is still `customer` above, resolved from the
+    // patient's auto-linked Customer record.
+    patient:         props.selectedPatient?.name || null,
     payments:        cartStore.payments,
     taxesAndCharges:              cartStore.taxesAndCharges,
     taxCategory:                  cartStore.taxCategory,
