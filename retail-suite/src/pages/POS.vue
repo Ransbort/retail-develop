@@ -8,7 +8,7 @@
       @shift-error="handleShiftError"
     />
 
-    <div class="hide-print flex flex-row pl-0 p-4 min-h-0 gap-2 antialiased"
+    <div class="hide-print flex flex-row pl-0 p-4 h-full gap-2 antialiased"
         :style="{
         background: isDark ? 'var(--bg)' : 'var(--card-bg)',
         color: 'var(--text-main)'
@@ -21,39 +21,80 @@
       />
 
       <!-- Main Content -->
-      <div class="w-full flex gap-4">
-        <!-- Products Section -->
+      <div class="w-full flex flex-col gap-4">
+        <!-- Customer Bar (full width, above products + cart) -->
         <div
-          class="flex-grow flex flex-col h-full p-4 rounded-xl"
+          class="space-y-4 rounded-xl p-4"
           :style="{
             background: 'var(--content-panel-bg)',
             border: '1px solid var(--content-panel-border)',
             boxShadow: 'var(--content-panel-shadow)'
           }"
         >
-          <div class="mb-4">
-            <SearchBar v-model="searchKeyword" />
+          <div class="flex items-stretch gap-4">
+            <div class="flex-1">
+              <CustomerSection
+                :disabled="!!selectedPatient"
+                @customer-selected="handleCustomerSelected"
+              />
+            </div>
+            <div class="flex-1">
+              <PatientSection
+                @patient-selected="handlePatientSelected"
+                @prescriptions-loaded="handlePrescriptionsLoaded"
+              />
+            </div>
           </div>
 
-          <div class="flex-1 overflow-hidden">
-            <ProductGrid :search-keyword="searchKeyword" />
-          </div>
+          <div class="flex flex-1 space-between gap-4">
+              <SearchBar class="flex-1" v-model="searchKeyword" />
+              <FilterBar
+                v-model:selectedPriceList="productsStore.selectedPriceList"
+                v-model:selectedWarehouse="productsStore.selectedWarehouse"
+                :price-lists="productsStore.priceLists"
+                :warehouses="productsStore.warehouses"
+                :is-loading="productsStore.isLoading"
+                @reload="productsStore.loadProductsFromFrappeDB(true)" />
+            </div>
+
+          
         </div>
 
-        <!-- Cart Section -->
-        <div
-          class="w-4/12 flex flex-col h-full py-4 px-3 rounded-xl"
-          :style="{
-            background: 'var(--sidebar-panel-bg)',
-            border: '1px solid var(--sidebar-panel-border)',
-            boxShadow: 'var(--sidebar-panel-shadow)'
-          }"
-        >
-          <Cart
-            :selected-invoice="selectedInvoice"
-            @submit="handleCartSubmit"
-            @clear-invoice="handleClearInvoice"
-          />
+        <div class="flex-1 flex gap-4 min-h-0">
+          <!-- Products Section -->
+          <div
+            class="flex-grow flex flex-col h-full p-4 rounded-xl"
+            :style="{
+              background: 'var(--content-panel-bg)',
+              border: '1px solid var(--content-panel-border)',
+              boxShadow: 'var(--content-panel-shadow)'
+            }"
+          >
+          
+          <div class="flex-1 overflow-hidden">
+              <ProductGrid :search-keyword="searchKeyword" />
+            </div>
+          
+          </div>
+            
+
+          <!-- Cart Section -->
+          <div
+            class="w-4/12 flex flex-col h-full py-4 px-3 rounded-xl"
+            :style="{
+              background: 'var(--sidebar-panel-bg)',
+              border: '1px solid var(--sidebar-panel-border)',
+              boxShadow: 'var(--sidebar-panel-shadow)'
+            }"
+          >
+            <Cart
+              :selected-invoice="selectedInvoice"
+              :selected-customer="selectedCustomer"
+              :selected-patient="selectedPatient"
+              @submit="handleCartSubmit"
+              @clear-invoice="handleClearInvoice"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -86,7 +127,7 @@
     @open="showShiftModal = true"
   />
 
-  <ShiftSelectionModal
+  <!-- <ShiftSelectionModal
     v-if="showShiftModal && shiftStore.availableShifts.length > 0"
     :shifts="shiftStore.availableShifts"
     @select="handleShiftSelected"
@@ -98,7 +139,7 @@
     v-if="(showShiftModal && shiftStore.availableShifts.length === 0) || showOpenShiftModal"
     @success="handleShiftOpened"
     @close="showOpenShiftModal = false; showShiftModal = false"
-  />
+  /> -->
 
   <!-- Settings Dialog -->
   <SettingsDialog v-model="settingsOpen" />
@@ -125,6 +166,10 @@ import Sidebar from '@/layout/Sidebar.vue'
 import SearchBar from '@/layout/SearchBar.vue'
 import ProductGrid from '@/components/products/ProductGrid.vue'
 import Cart from '@/components/cart/Cart.vue'
+import CustomerSection from '@/components/cart/CustomerSection.vue'
+import PatientSection from '@/components/cart/PatientSection.vue'
+import FilterBar from '@/components/products/FilterBar.vue'
+
 import FirstTimeModal from '@/components/modals/FirstTimeModal.vue'
 import ReceiptModal from '@/components/modals/ReceiptModal.vue'
 import SettingsDialog from '@/components/modals/SettingsDialog.vue'
@@ -158,6 +203,8 @@ const showInvoicesDialog = ref(false)
 const showOpenShiftModal = ref(false)
 const receiptData = ref(null)
 const selectedInvoice = ref(null)
+const selectedCustomer = ref(null)
+const selectedPatient = ref(null)
 const user = ref(null)
 
 const settingsStore = useSettingsStore()
@@ -231,6 +278,84 @@ const handleAddToCart = (product) => {
   const added = cartStore.addToCart(product)
   if (!added) {
     window.$toast?.warning(__('Quantity exceeds available stock'))
+  }
+}
+
+// Handle customer selected (from CustomerSection component)
+const handleCustomerSelected = (customer) => {
+  selectedCustomer.value = customer
+  shiftStore.setCustomer(customer)
+}
+
+// Handle patient selected (from PatientSection component)
+// Selecting a patient outranks customer for billing, same as
+// pharmacy_pos.js's patient_field.onchange handler - CustomerSection's
+// :disabled prop above already reflects this via `!!selectedPatient`.
+const handlePatientSelected = (patient) => {
+  selectedPatient.value = patient
+}
+
+// Handle "Load Prescriptions" (from PatientSection component)
+// Mirrors add_medication_to_cart() in pharmacy_pos.js: for each pending
+// Medication Request, find the matching product, skip if out of stock,
+// otherwise add the remaining (un-invoiced) quantity to the cart.
+//
+// ASSUMPTIONS I couldn't verify without stores/products.js and
+// stores/cart.js:
+//   - productsStore.products items expose `item_code` and `stock_qty`
+//     (matches the FilterBar/CategoryFilter thresholds already in place)
+//   - a Medication Request's `medication` field matches a product's
+//     `medication_name` OR its `medication_item` matches `item_code`
+//   - cartStore.addToCart(product, qty) accepts a quantity as its second
+//     argument. handleAddToCart() above only ever calls it with a single
+//     product and no explicit qty, so this needs confirming - if
+//     addToCart doesn't support a qty param, tell me and I'll adjust to
+//     call it in a loop or extend the store instead.
+const handlePrescriptionsLoaded = ({ patient, medicationRequests }) => {
+  if (!medicationRequests || medicationRequests.length === 0) {
+    window.$toast?.info(__('No pending medication requests found'))
+    return
+  }
+
+  const outOfStock = new Set()
+  let addedCount = 0
+
+  for (const req of medicationRequests) {
+    const remainingQty = (req.total_dispensable_quantity || req.quantity) - (req.qty_invoiced || 0)
+    if (remainingQty <= 0) continue
+
+    const product = productsStore.products.find(
+      p => p.medication_name === req.medication || p.item_code === req.medication_item
+    )
+
+    if (!product) {
+      console.warn(`Medication ${req.medication} not found in loaded products`)
+      continue
+    }
+
+    if ((product.stock_qty || 0) <= 0) {
+      outOfStock.add(req.medication)
+      continue
+    }
+
+    const added = cartStore.addToCart({
+      ...product,
+      medication_request: req.name,
+      dosage_form: req.dosage_form || product.dosage_form,
+      dosage: req.dosage,
+      period: req.period,
+      comment: req.comment
+    }, remainingQty)
+
+    if (added !== false) addedCount++
+  }
+
+  if (outOfStock.size > 0) {
+    window.$toast?.warning(
+      __('Loaded {0} medication(s). Out of stock: {1}', [addedCount, [...outOfStock].join(', ')])
+    )
+  } else if (addedCount > 0) {
+    window.$toast?.success(__('Loaded {0} medication(s)', [addedCount]))
   }
 }
 
