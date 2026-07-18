@@ -432,6 +432,34 @@ export const useShiftStore = defineStore('shift', {
       }
     },
 
+    async getPatients(searchTerm = '') {
+      try {
+          const response = await call('retail.retail.api.posapp.get_patient_names',
+              { search_term: searchTerm }
+          )
+          console.log("API Get Patients from Frappe DB", response)
+          return response
+      }
+      catch (error) {
+          console.error("❌ Error API Get Patients from Frappe DB:", error)
+          return []
+      }
+    },
+
+    async getPatientPrescriptions(patient) {
+      try {
+          const response = await call('retail.retail.api.posapp.get_patient_prescriptions',
+              { patient: patient }
+          )
+          console.log("API Get Patient Prescriptions from Frappe DB", response)
+          return response
+      }
+      catch (error) {
+          console.error("❌ Error API Get Patient Prescriptions from Frappe DB:", error)
+          return []
+      }
+    },
+
     async createUpdateCustomer(args) {
           const {
         method = 'create',
