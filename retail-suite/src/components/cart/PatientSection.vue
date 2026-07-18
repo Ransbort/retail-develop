@@ -15,10 +15,26 @@
         @keydown.up.prevent="movePatientHighlight(-1)"
         @keydown.enter.prevent="selectHighlightedPatient"
         @keydown.esc="closePatientDropdown"
+        :disabled="disabled"
         :placeholder="__('Patient (Optional)...')"
-        class="w-full h-full p-4 outline-none rounded-3xl text-sm transition-all"
-        :style="{ background: 'var(--input-bg)', color: 'var(--text-main)', border: 'none' }"
+        class="w-full h-full p-4 pr-9 outline-none rounded-3xl text-sm transition-all"
+        :style="{
+          background: 'var(--input-bg)',
+          color: 'var(--text-main)',
+          border: 'none',
+          opacity: disabled ? 0.5 : 1
+        }"
       />
+
+      <button
+        v-if="selectedPatient && !disabled"
+        type="button"
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-50 hover:opacity-100"
+        :title="__('Clear patient')"
+        @click="clearPatient"
+      >
+        ×
+      </button>
 
       <div
         v-show="isPatientDropdownOpen"
@@ -90,7 +106,11 @@ const props = defineProps({
   // Show the "+ Create a new Patient" row, matching native Frappe Link
   // field behavior. Emits `create-new-patient` - parent should open
   // whatever patient-creation modal/route you use (e.g. /app/patient/new).
-  allowCreate: { type: Boolean, default: true }
+  allowCreate: { type: Boolean, default: true },
+  // Mirrors CustomerSection's disabled prop - set true when a customer is
+  // selected, since patient and customer are mutually exclusive billing
+  // parties (pharmacy_pos.js's patient/customer fields work the same way).
+  disabled: { type: Boolean, default: false }
 })
 
 // emits:
@@ -148,6 +168,7 @@ const onPatientSearchInput = () => {
 }
 
 const openPatientDropdown = () => {
+  if (props.disabled) return
   isPatientDropdownOpen.value = true
   if (!patients.value.length) loadPatients(patientSearchQuery.value.trim())
 }
