@@ -31,6 +31,28 @@
           {{ item.item_name }}
         </h5>
 
+        <!-- Prescription badges (dosage form / dosage+period) - only
+             present on items added via "Load Prescriptions" -->
+        <div
+          v-if="item.dosage_form || item.dosage || item.period"
+          class="flex items-center gap-1 mt-0.5 flex-wrap"
+        >
+          <span
+            v-if="item.dosage_form"
+            class="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 w-fit"
+            :style="{ background: 'rgba(99,102,241,0.1)', color: '#4338ca' }"
+          >
+            💊 {{ item.dosage_form }}
+          </span>
+          <span
+            v-if="item.dosage || item.period"
+            class="text-xs px-1.5 py-0.5 rounded w-fit"
+            :style="{ background: 'rgba(16,185,129,0.1)', color: '#0F6E56' }"
+          >
+            {{ [item.dosage, item.period].filter(Boolean).join(' • ') }}
+          </span>
+        </div>
+
         <!-- Serial No -->
         <span
           v-if="item.serial_no"
