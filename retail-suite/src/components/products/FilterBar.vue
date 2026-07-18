@@ -6,7 +6,7 @@
   >
 
   <!-- Category Filter -->
-    <div class="flex items-center gap-2"> 
+    <div class="flex items-center gap-2">
       <!-- Category Filter -->
       <CategoryFilter v-model="selectedCategory" />
 
@@ -27,7 +27,7 @@
 
 <script setup>
 
-import { onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useProductsStore } from '@/stores/products'
 import { storeToRefs } from 'pinia'
 import { useSettingsStore } from '@/stores/settings'
@@ -50,8 +50,21 @@ defineProps({
 const emit = defineEmits([
   'update:selectedPriceList',
   'update:selectedWarehouse',
+  'update:selectedCategory',
   'reload'
 ])
+
+// selectedCategory was previously referenced in the template
+// (v-model="selectedCategory" on CategoryFilter) without ever being
+// declared here - assigning to it would have thrown. It's local state
+// (stock-status filter: 'all' | 'in_stock' | 'low_stock' | 'out_of_stock'),
+// but it's also emitted upward so ProductGrid.vue can actually use it to
+// filter the grid - right now nothing consumes the selection at all.
+const selectedCategory = ref('all')
+
+watch(selectedCategory, (val) => {
+  emit('update:selectedCategory', val)
+})
 
 const selectStyle = {
   background: 'var(--item-bg)',
