@@ -24,11 +24,8 @@
       <div class="w-full flex flex-col gap-4">
         
 
-          
-        </div>
-
         <div class="flex-1 flex gap-4 min-h-0">
-			<!-- Customer Bar (full width, above products + cart) -->
+          <!-- Customer Bar (full width, above products + cart) -->
         <div
           class="space-y-4 rounded-xl p-4"
           :style="{
@@ -66,6 +63,8 @@
                 :is-loading="productsStore.isLoading"
                 @reload="productsStore.loadProductsFromFrappeDB(true)" />
             </div>
+        </div>
+			
           <!-- Products Section -->
           <div
             class="flex-grow flex flex-col h-full p-4 rounded-xl"
