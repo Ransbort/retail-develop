@@ -40,6 +40,7 @@
             </div>
             <div class="flex-1">
               <PatientSection
+                ref="patientSectionRef"
                 @patient-selected="handlePatientSelected"
                 @prescriptions-loaded="handlePrescriptionsLoaded"
               />
@@ -127,7 +128,7 @@
     @open="showShiftModal = true"
   />
 
-  <ShiftSelectionModal
+  <!-- <ShiftSelectionModal
     v-if="showShiftModal && shiftStore.availableShifts.length > 0"
     :shifts="shiftStore.availableShifts"
     @select="handleShiftSelected"
@@ -139,7 +140,7 @@
     v-if="(showShiftModal && shiftStore.availableShifts.length === 0) || showOpenShiftModal"
     @success="handleShiftOpened"
     @close="showOpenShiftModal = false; showShiftModal = false"
-  />
+  /> -->
 
   <!-- Settings Dialog -->
   <SettingsDialog v-model="settingsOpen" />
@@ -205,6 +206,7 @@ const receiptData = ref(null)
 const selectedInvoice = ref(null)
 const selectedCustomer = ref(null)
 const selectedPatient = ref(null)
+const patientSectionRef = ref(null)
 const user = ref(null)
 
 const settingsStore = useSettingsStore()
@@ -244,7 +246,7 @@ const handleMenuChange = (menu) => {
       cartStore.mode = 'sale'
       activeMenu.value = menu
       selectedInvoice.value = null
-      cartStore.clearCart()
+      clearCartAndPatient()
       cartStore.isReturn = 0
       break
 
@@ -293,6 +295,16 @@ const handleCustomerSelected = (customer) => {
 // :disabled prop above already reflects this via `!!selectedPatient`.
 const handlePatientSelected = (patient) => {
   selectedPatient.value = patient
+}
+
+// cartStore.clearCart() alone leaves selectedPatient stuck selected (found
+// while checking cart.js - clearCart() is called from 10 different spots
+// below and none of them reset the patient, so the customer field would
+// stay disabled and the next sale would silently reuse the old patient).
+const clearCartAndPatient = () => {
+  cartStore.clearCart()
+  selectedPatient.value = null
+  patientSectionRef.value?.clearPatient()
 }
 
 // Handle "Load Prescriptions" (from PatientSection component)
@@ -368,7 +380,7 @@ const handlePrescriptionsLoaded = ({ patient, medicationRequests }) => {
 // Handle invoice selected (from Cart component)
 const handleInvoiceSelected = (invoice) => {
 
-  cartStore.clearCart()
+  clearCartAndPatient()
 
   if (invoice.returnable_items && invoice.returnable_items.length) {
 
@@ -483,7 +495,7 @@ const handleReturnTransaction = async (returnData) => {
     }
 
     // نظّف الـ state
-    cartStore.clearCart()
+    clearCartAndPatient()
     selectedInvoice.value = null
     activeMenu.value = 'pos'
 
@@ -537,7 +549,7 @@ const handleReceiptPrinted = async (receiptDataParam) => {
   } catch (error) {
     if (window.$toast) window.$toast.error(error.message || 'Failed to submit invoice')
   } finally {
-    cartStore.clearCart()
+    clearCartAndPatient()
     selectedInvoice.value = null
     showReceiptModal.value = false
     activeMenu.value = 'pos'
@@ -580,7 +592,7 @@ try {
   }
 
   // Clear cart and selected invoice
-  cartStore.clearCart()
+  clearCartAndPatient()
   selectedInvoice.value = null
 
   // Show receipt modal for return
@@ -598,7 +610,7 @@ try {
 // Handle return cancelled
 const handleReturnCancelled = () => {
   console.log('Return cancelled')
-  cartStore.clearCart()
+  clearCartAndPatient()
   selectedInvoice.value = null
 
   if (window.$toast) {
@@ -612,7 +624,7 @@ const handleShiftClosed = async (shift) => {
   console.log('shift user', shift.user)
 
   showOpenShiftModal.value = true
-  cartStore.clearCart()
+  clearCartAndPatient()
   selectedInvoice.value = null
 }
 
@@ -629,7 +641,7 @@ const startBlank = () => {
 const closeReceiptModal = () => {
   showReceiptModal.value = false
   receiptData.value = null
-  cartStore.clearCart()
+  clearCartAndPatient()
 }
 
 // Proceed after print - SAVE INVOICE HERE
@@ -657,7 +669,7 @@ const proceedAfterPrint = async (receiptDataParam) => {
       }
 
       // Clear cart and close modal
-      cartStore.clearCart()
+      clearCartAndPatient()
       selectedInvoice.value = null
       showReceiptModal.value = false
       activeMenu.value = 'pos'
@@ -671,7 +683,7 @@ const proceedAfterPrint = async (receiptDataParam) => {
       window.$toast.error('Failed to save invoice, but transaction was completed')
     }
 
-    cartStore.clearCart()
+    clearCartAndPatient()
     selectedInvoice.value = null
     showReceiptModal.value = false
     activeMenu.value = 'pos'
@@ -782,7 +794,7 @@ useKeyboardShortcuts({
   // Ctrl+N → كارت جديد (clear)
   onNew: () => {
     if (showReceiptModal.value) return
-    cartStore.clearCart()
+    clearCartAndPatient()
   },
 
   // Ctrl+S → حفظ (لو الـ receipt modal مفتوح = save invoice)
