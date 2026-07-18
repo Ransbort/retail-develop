@@ -22,20 +22,7 @@
 
       <!-- Main Content -->
       <div class="w-full flex flex-col gap-4">
-
-        <div class="flex-1 flex gap-4 min-h-0">
-			
-          <!-- Products Section -->
-          <div
-            class="flex-grow flex flex-col h-full p-4 rounded-xl"
-            :style="{
-              background: 'var(--content-panel-bg)',
-              border: '1px solid var(--content-panel-border)',
-              boxShadow: 'var(--content-panel-shadow)'
-            }"
-          >
-
-		<!-- Customer Bar (full width, above products + cart) -->
+        <!-- Customer Bar (full width, above products + cart) -->
         <div
           class="space-y-4 rounded-xl p-4"
           :style="{
@@ -65,15 +52,29 @@
               <FilterBar
                 v-model:selectedPriceList="productsStore.selectedPriceList"
                 v-model:selectedWarehouse="productsStore.selectedWarehouse"
+                v-model:selectedCategory="selectedStockFilter"
                 :price-lists="productsStore.priceLists"
                 :warehouses="productsStore.warehouses"
                 :is-loading="productsStore.isLoading"
                 @reload="productsStore.loadProductsFromFrappeDB(true)" />
             </div>
+
+          
         </div>
+
+        <div class="flex-1 flex gap-4 min-h-0">
+          <!-- Products Section -->
+          <div
+            class="flex-grow flex flex-col h-full p-4 rounded-xl"
+            :style="{
+              background: 'var(--content-panel-bg)',
+              border: '1px solid var(--content-panel-border)',
+              boxShadow: 'var(--content-panel-shadow)'
+            }"
+          >
           
           <div class="flex-1 overflow-hidden">
-              <ProductGrid :search-keyword="searchKeyword" />
+              <ProductGrid :search-keyword="searchKeyword" :stock-filter="selectedStockFilter" />
             </div>
           
           </div>
@@ -128,7 +129,7 @@
     @open="showShiftModal = true"
   />
 
-  <ShiftSelectionModal
+  <!-- <ShiftSelectionModal
     v-if="showShiftModal && shiftStore.availableShifts.length > 0"
     :shifts="shiftStore.availableShifts"
     @select="handleShiftSelected"
@@ -140,7 +141,7 @@
     v-if="(showShiftModal && shiftStore.availableShifts.length === 0) || showOpenShiftModal"
     @success="handleShiftOpened"
     @close="showOpenShiftModal = false; showShiftModal = false"
-  />
+  /> -->
 
   <!-- Settings Dialog -->
   <SettingsDialog v-model="settingsOpen" />
@@ -207,6 +208,7 @@ const selectedInvoice = ref(null)
 const selectedCustomer = ref(null)
 const selectedPatient = ref(null)
 const patientSectionRef = ref(null)
+const selectedStockFilter = ref('all')
 const user = ref(null)
 
 const settingsStore = useSettingsStore()
