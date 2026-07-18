@@ -34,6 +34,7 @@
           <div class="flex items-stretch gap-4">
             <div class="flex-1">
               <CustomerSection
+                ref="customerSectionRef"
                 :disabled="!!selectedPatient"
                 @customer-selected="handleCustomerSelected"
               />
@@ -41,6 +42,7 @@
             <div class="flex-1">
               <PatientSection
                 ref="patientSectionRef"
+                :disabled="!!selectedCustomer"
                 @patient-selected="handlePatientSelected"
                 @prescriptions-loaded="handlePrescriptionsLoaded"
               />
@@ -129,7 +131,7 @@
     @open="showShiftModal = true"
   />
 
-  <ShiftSelectionModal
+  <!-- <ShiftSelectionModal
     v-if="showShiftModal && shiftStore.availableShifts.length > 0"
     :shifts="shiftStore.availableShifts"
     @select="handleShiftSelected"
@@ -141,7 +143,7 @@
     v-if="(showShiftModal && shiftStore.availableShifts.length === 0) || showOpenShiftModal"
     @success="handleShiftOpened"
     @close="showOpenShiftModal = false; showShiftModal = false"
-  />
+  /> -->
 
   <!-- Settings Dialog -->
   <SettingsDialog v-model="settingsOpen" />
@@ -208,6 +210,7 @@ const selectedInvoice = ref(null)
 const selectedCustomer = ref(null)
 const selectedPatient = ref(null)
 const patientSectionRef = ref(null)
+const customerSectionRef = ref(null)
 const selectedStockFilter = ref('all')
 const user = ref(null)
 
@@ -299,14 +302,16 @@ const handlePatientSelected = (patient) => {
   selectedPatient.value = patient
 }
 
-// cartStore.clearCart() alone leaves selectedPatient stuck selected (found
-// while checking cart.js - clearCart() is called from 10 different spots
-// below and none of them reset the patient, so the customer field would
-// stay disabled and the next sale would silently reuse the old patient).
+// cartStore.clearCart() alone leaves selectedPatient (and selectedCustomer)
+// stuck selected - clearCart() is called from 10+ spots below and none of
+// them reset either party, so a field would stay disabled and the next
+// sale would silently reuse the old patient/customer.
 const clearCartAndPatient = () => {
   cartStore.clearCart()
   selectedPatient.value = null
+  selectedCustomer.value = null
   patientSectionRef.value?.clearPatient()
+  customerSectionRef.value?.clearCustomer()
 }
 
 // Handle "Load Prescriptions" (from PatientSection component)
