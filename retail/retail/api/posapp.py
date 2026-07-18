@@ -626,6 +626,36 @@ def get_patient_prescriptions(patient):
         limit_page_length=100,
     )
 
+@frappe.whitelist()
+def get_item_price_and_stock(item_code, price_list, customer=None, warehouse=None):
+    """Fetch fresh price + stock for a single item, reusing the same
+    pricing logic get_items() uses. Used by the "Load Prescriptions" flow
+    so medication rates never depend on whatever happens to already be
+    sitting in the frontend's loaded product list."""
+    if not frappe.db.exists("Item", item_code):
+        frappe.throw(_("Item {0} not found").format(item_code))
+
+    item = frappe.db.get_value(
+        "Item", item_code,
+        ["name as item_code", "item_name", "description", "stock_uom",
+         "image", "item_group", "brand"],
+        as_dict=True,
+    )
+
+    today = nowdate()
+    currency = frappe.db.get_value("Price List", price_list, "currency")
+    price_map = _build_prices([item], price_list, customer, {"currency": currency}, today)
+    item_price = _get_item_price(price_map, item_code, item.stock_uom)
+
+    item["rate"] = item_price.get("price_list_rate") or 0
+    item["currency"] = item_price.get("currency") or currency
+    item["uom"] = item.stock_uom
+    item["conversion_factor"] = 1
+    item["actual_qty"] = get_stock_availability(item_code, warehouse) if warehouse else 0
+
+    return item
+
+
 def _has_address_data(payload: dict) -> bool:
     """Only treat address as provided if a meaningful field was actually filled in.
     Skips 'country' (always has a default) and the is_primary/is_shipping flags."""
