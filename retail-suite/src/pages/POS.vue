@@ -127,7 +127,7 @@
     @open="showShiftModal = true"
   />
 
-  <ShiftSelectionModal
+  <!-- <ShiftSelectionModal
     v-if="showShiftModal && shiftStore.availableShifts.length > 0"
     :shifts="shiftStore.availableShifts"
     @select="handleShiftSelected"
@@ -139,7 +139,7 @@
     v-if="(showShiftModal && shiftStore.availableShifts.length === 0) || showOpenShiftModal"
     @success="handleShiftOpened"
     @close="showOpenShiftModal = false; showShiftModal = false"
-  />
+  /> -->
 
   <!-- Settings Dialog -->
   <SettingsDialog v-model="settingsOpen" />
@@ -300,17 +300,9 @@ const handlePatientSelected = (patient) => {
 // Medication Request, find the matching product, skip if out of stock,
 // otherwise add the remaining (un-invoiced) quantity to the cart.
 //
-// ASSUMPTIONS I couldn't verify without stores/products.js and
-// stores/cart.js:
-//   - productsStore.products items expose `item_code` and `stock_qty`
-//     (matches the FilterBar/CategoryFilter thresholds already in place)
-//   - a Medication Request's `medication` field matches a product's
-//     `medication_name` OR its `medication_item` matches `item_code`
-//   - cartStore.addToCart(product, qty) accepts a quantity as its second
-//     argument. handleAddToCart() above only ever calls it with a single
-//     product and no explicit qty, so this needs confirming - if
-//     addToCart doesn't support a qty param, tell me and I'll adjust to
-//     call it in a loop or extend the store instead.
+// cartStore.addToCart(product, barcode) reads the quantity to add from
+// product.qty (defaulting to 1) and checks stock via product.actual_qty,
+// NOT stock_qty and NOT a second qty argument - confirmed from cart.js.
 const handlePrescriptionsLoaded = ({ patient, medicationRequests }) => {
   if (!medicationRequests || medicationRequests.length === 0) {
     window.$toast?.info(__('No pending medication requests found'))
@@ -324,30 +316,44 @@ const handlePrescriptionsLoaded = ({ patient, medicationRequests }) => {
     const remainingQty = (req.total_dispensable_quantity || req.quantity) - (req.qty_invoiced || 0)
     if (remainingQty <= 0) continue
 
+    // NOTE: products from get_items (posapp.py) never have a
+    // `medication_name` field - matching is really only ever happening
+    // via item_code === medication_item. Logging here temporarily so we
+    // can see why actual_qty is coming back 0/undefined for items that
+    // do have real stock (likely a warehouse mismatch).
     const product = productsStore.products.find(
-      p => p.medication_name === req.medication || p.item_code === req.medication_item
+      p => p.item_code === req.medication_item
     )
 
+    console.log('[Prescription match]', {
+      requested_medication: req.medication,
+      requested_medication_item: req.medication_item,
+      matched_product: product,
+      matched_actual_qty: product?.actual_qty,
+      current_selected_warehouse: productsStore.selectedWarehouse
+    })
+
     if (!product) {
-      console.warn(`Medication ${req.medication} not found in loaded products`)
+      console.warn(`Medication ${req.medication} (item ${req.medication_item}) not found in loaded products`)
       continue
     }
 
-    if ((product.stock_qty || 0) <= 0) {
+    if ((product.actual_qty || 0) <= 0) {
       outOfStock.add(req.medication)
       continue
     }
 
     const added = cartStore.addToCart({
       ...product,
+      qty: remainingQty,
       medication_request: req.name,
       dosage_form: req.dosage_form || product.dosage_form,
       dosage: req.dosage,
       period: req.period,
       comment: req.comment
-    }, remainingQty)
+    })
 
-    if (added !== false) addedCount++
+    if (added) addedCount++
   }
 
   if (outOfStock.size > 0) {
