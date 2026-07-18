@@ -315,40 +315,62 @@ const clearCartAndPatient = () => {
 // cartStore.addToCart(product, barcode) reads the quantity to add from
 // product.qty (defaulting to 1) and checks stock via product.actual_qty,
 // NOT stock_qty and NOT a second qty argument - confirmed from cart.js.
-const handlePrescriptionsLoaded = ({ patient, medicationRequests }) => {
+// Handle "Load Prescriptions" (from PatientSection component)
+// Mirrors add_medication_to_cart() in pharmacy_pos.js: for each pending
+// Medication Request, find the linked Item, fetch its price + stock
+// FRESH from the backend (rather than trusting whatever's already sitting
+// in productsStore.products - that list can be paginated/stale, and its
+// pricing is nested under uom_prices[stock_uom], not a flat `rate`, which
+// is exactly why prices were coming back as 0 before), then add the
+// remaining (un-invoiced) quantity to the cart.
+const handlePrescriptionsLoaded = async ({ patient, medicationRequests }) => {
   if (!medicationRequests || medicationRequests.length === 0) {
     window.$toast?.info(__('No pending medication requests found'))
     return
   }
 
+  const priceList = productsStore.selectedPriceList
+  const warehouse = productsStore.selectedWarehouse
+  const billingCustomer = selectedPatient.value?.customer || selectedCustomer.value?.name || null
+
   const outOfStock = new Set()
+  const notFound = new Set()
   let addedCount = 0
 
   for (const req of medicationRequests) {
     const remainingQty = (req.total_dispensable_quantity || req.quantity) - (req.qty_invoiced || 0)
     if (remainingQty <= 0) continue
 
-    // NOTE: products from get_items (posapp.py) never have a
-    // `medication_name` field - matching is really only ever happening
-    // via item_code === medication_item. Logging here temporarily so we
-    // can see why actual_qty is coming back 0/undefined for items that
-    // do have real stock (likely a warehouse mismatch).
-    const product = productsStore.products.find(
-      p => p.item_code === req.medication_item
+    if (!req.medication_item) {
+      console.warn(`Medication Request ${req.name} has no linked Item (medication_item)`)
+      notFound.add(req.medication)
+      continue
+    }
+
+    // Cached product (if loaded) just supplies image/item_group for free -
+    // price and stock always come fresh from the fetch below.
+    const cachedProduct = productsStore.products.find(p => p.item_code === req.medication_item)
+
+    const priceAndStock = await shiftStore.getItemPriceAndStock(
+      req.medication_item, priceList, billingCustomer, warehouse
     )
+
+    if (!priceAndStock) {
+      console.warn(`Could not fetch price/stock for item ${req.medication_item} (${req.medication})`)
+      notFound.add(req.medication)
+      continue
+    }
+
+    const product = { ...cachedProduct, ...priceAndStock }
 
     console.log('[Prescription match]', {
       requested_medication: req.medication,
       requested_medication_item: req.medication_item,
-      matched_product: product,
-      matched_actual_qty: product?.actual_qty,
-      current_selected_warehouse: productsStore.selectedWarehouse
+      product,
+      price_list: priceList,
+      warehouse,
+      billing_customer: billingCustomer
     })
-
-    if (!product) {
-      console.warn(`Medication ${req.medication} (item ${req.medication_item}) not found in loaded products`)
-      continue
-    }
 
     if ((product.actual_qty || 0) <= 0) {
       outOfStock.add(req.medication)
@@ -368,6 +390,11 @@ const handlePrescriptionsLoaded = ({ patient, medicationRequests }) => {
     if (added) addedCount++
   }
 
+  if (notFound.size > 0) {
+    window.$toast?.warning(
+      __('Could not find item/price for: {0}', [[...notFound].join(', ')])
+    )
+  }
   if (outOfStock.size > 0) {
     window.$toast?.warning(
       __('Loaded {0} medication(s). Out of stock: {1}', [addedCount, [...outOfStock].join(', ')])
