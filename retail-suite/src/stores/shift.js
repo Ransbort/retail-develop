@@ -460,6 +460,20 @@ export const useShiftStore = defineStore('shift', {
       }
     },
 
+    async getItemPriceAndStock(item_code, price_list, customer = null, warehouse = null) {
+      try {
+          const response = await call('retail.retail.api.posapp.get_item_price_and_stock',
+              { item_code, price_list, customer, warehouse }
+          )
+          console.log("API Get Item Price And Stock", response)
+          return response
+      }
+      catch (error) {
+          console.error("❌ Error API Get Item Price And Stock:", error)
+          return null
+      }
+    },
+
     async createUpdateCustomer(args) {
           const {
         method = 'create',
