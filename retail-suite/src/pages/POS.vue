@@ -28,7 +28,7 @@
 
           <!-- Products Section -->
           <div
-            class="flex-grow flex flex-col h-full p-4 rounded-xl"
+            class="flex-grow flex flex-col h-full p-4 gap-2 rounded-xl"
             :style="{
               background: 'var(--content-panel-bg)',
               border: '1px solid var(--content-panel-border)',
@@ -78,7 +78,7 @@
           
         </div>
           
-          <div class="flex-1 overflow-hidden">
+          <div class="flex-1 p-1 overflow-hidden">
               <ProductGrid :search-keyword="searchKeyword" :stock-filter="selectedStockFilter" />
             </div>
           
