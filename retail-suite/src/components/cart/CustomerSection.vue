@@ -15,7 +15,7 @@
       @keydown.esc="closeCustomerDropdown"
       :disabled="disabled"
       :placeholder="__('Search or create customer...')"
-      class="w-full h-full p-4 outline-none rounded-3xl text-sm transition-all"
+      class="w-full h-full p-4 pr-9 outline-none rounded-3xl text-sm transition-all"
       :style="{
         background: 'var(--input-bg)',
         color: 'var(--text-main)',
@@ -23,6 +23,16 @@
         opacity: disabled ? 0.5 : 1
       }"
     />
+
+    <button
+      v-if="selectedCustomer && !disabled"
+      type="button"
+      class="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-50 hover:opacity-100"
+      :title="__('Clear customer')"
+      @click="clearCustomer"
+    >
+      ×
+    </button>
 
     <div
       v-show="isCustomerDropdownOpen"
@@ -210,6 +220,15 @@ const handleCustomerUpdated = async (updatedCustomer) => {
   emit('customer-selected', updatedCustomer)
 }
 
+const clearCustomer = () => {
+  selectedCustomer.value = ''
+  customerName.value = null
+  customer_info.value = {}
+  customerSearchQuery.value = ''
+  shiftStore.setCustomer(null)
+  emit('customer-selected', null)
+}
+
 const handleClickOutside = (e) => {
   if (rootEl.value && !rootEl.value.contains(e.target)) {
     closeCustomerDropdown()
@@ -235,4 +254,6 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   clearTimeout(customerDebounceTimer)
 })
+
+defineExpose({ clearCustomer })
 </script>
