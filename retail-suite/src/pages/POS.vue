@@ -129,7 +129,7 @@
     @open="showShiftModal = true"
   />
 
-  <!-- <ShiftSelectionModal
+  <ShiftSelectionModal
     v-if="showShiftModal && shiftStore.availableShifts.length > 0"
     :shifts="shiftStore.availableShifts"
     @select="handleShiftSelected"
@@ -141,7 +141,7 @@
     v-if="(showShiftModal && shiftStore.availableShifts.length === 0) || showOpenShiftModal"
     @success="handleShiftOpened"
     @close="showOpenShiftModal = false; showShiftModal = false"
-  /> -->
+  />
 
   <!-- Settings Dialog -->
   <SettingsDialog v-model="settingsOpen" />
