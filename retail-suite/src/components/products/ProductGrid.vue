@@ -1,20 +1,9 @@
 <!-- ProductGrid.vue -->
 <template>
-  <div class="h-full flex flex-col overflow-hidden gap-3 mt-3">
-    <!-- Filter Bar (pricelist + warehouse) -->
-    <FilterBar
-      v-model:selectedPriceList="selectedPriceList"
-      v-model:selectedWarehouse="selectedWarehouse"
-      :price-lists="productsStore.priceLists"
-      :warehouses="productsStore.warehouses"
-      :is-loading="productsStore.isLoading"
-      @reload="productsStore.loadProductsFromFrappeDB(true)"
-    />
-    <!-- Category Filter -->
-    <CategoryFilter v-model="selectedCategory" />
+  <div class="h-full flex flex-col overflow-hidden gap-3">
 
     <!-- Scrollable Grid Area -->
-    <div class="flex-1 overflow-y-auto px-1">
+    <div class="flex-1 overflow-y-auto">
 
       <!-- Empty DB -->
       <div
@@ -90,7 +79,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import ProductCard from './ProductCard.vue'
-import CategoryFilter from './CategoryFilter.vue'
+// import CategoryFilter from './CategoryFilter.vue'
 import FilterBar from './FilterBar.vue'
 import { useProductsStore } from '@/stores/products'
 import { useCartStore } from '@/stores/cart'
@@ -102,7 +91,11 @@ import { storeToRefs } from 'pinia'
 const shiftStore = useShiftStore()
 const { isShiftOpen } = storeToRefs(shiftStore)
 const props = defineProps({
-  searchKeyword: { type: String, default: '' }
+  searchKeyword: { type: String, default: '' },
+  // 'all' | 'in_stock' | 'low_stock' | 'out_of_stock' - from FilterBar's
+  // CategoryFilter. Same threshold CategoryFilter.vue uses for its own
+  // counts, kept in sync here so the pills and the actual grid agree.
+  stockFilter: { type: String, default: 'all' }
 })
 const emit = defineEmits(['add-to-cart', 'remove-from-cart', 'view-details'])
 
@@ -110,11 +103,28 @@ const productsStore = useProductsStore()
 const cartStore = useCartStore()
 const selectedCategory = ref('')
 
+const LOW_STOCK_THRESHOLD = 10
+
 const filteredProducts = computed(() => {
   let list = productsStore.products
+
   if (selectedCategory.value) {
     list = list.filter(p => p.item_group === selectedCategory.value)
   }
+
+  switch (props.stockFilter) {
+    case 'in_stock':
+      list = list.filter(p => (p.actual_qty || 0) > LOW_STOCK_THRESHOLD)
+      break
+    case 'low_stock':
+      list = list.filter(p => (p.actual_qty || 0) > 0 && (p.actual_qty || 0) <= LOW_STOCK_THRESHOLD)
+      break
+    case 'out_of_stock':
+      list = list.filter(p => (p.actual_qty || 0) <= 0)
+      break
+    // 'all' (or anything else) - no additional filtering
+  }
+
   return list
 })
 
