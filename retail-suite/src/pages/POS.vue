@@ -22,22 +22,7 @@
 
       <!-- Main Content -->
       <div class="w-full flex flex-col gap-4">
-        
-
-        <div class="flex-1 flex gap-4 min-h-0">
-
-          
-          <!-- Products Section -->
-          <div
-            class="flex-grow flex flex-col h-full p-4 rounded-xl"
-            :style="{
-              background: 'var(--content-panel-bg)',
-              border: '1px solid var(--content-panel-border)',
-              boxShadow: 'var(--content-panel-shadow)'
-            }"
-          >
-
-          <!-- Customer Bar (full width, above products + cart) -->
+        <!-- Customer Bar (full width, above products + cart) -->
         <div
           class="space-y-4 rounded-xl p-4"
           :style="{
@@ -55,6 +40,7 @@
             </div>
             <div class="flex-1">
               <PatientSection
+                ref="patientSectionRef"
                 @patient-selected="handlePatientSelected"
                 @prescriptions-loaded="handlePrescriptionsLoaded"
               />
@@ -74,6 +60,17 @@
 
           
         </div>
+
+        <div class="flex-1 flex gap-4 min-h-0">
+          <!-- Products Section -->
+          <div
+            class="flex-grow flex flex-col h-full p-4 rounded-xl"
+            :style="{
+              background: 'var(--content-panel-bg)',
+              border: '1px solid var(--content-panel-border)',
+              boxShadow: 'var(--content-panel-shadow)'
+            }"
+          >
           
           <div class="flex-1 overflow-hidden">
               <ProductGrid :search-keyword="searchKeyword" />
@@ -131,7 +128,7 @@
     @open="showShiftModal = true"
   />
 
-  <ShiftSelectionModal
+  <!-- <ShiftSelectionModal
     v-if="showShiftModal && shiftStore.availableShifts.length > 0"
     :shifts="shiftStore.availableShifts"
     @select="handleShiftSelected"
@@ -143,7 +140,7 @@
     v-if="(showShiftModal && shiftStore.availableShifts.length === 0) || showOpenShiftModal"
     @success="handleShiftOpened"
     @close="showOpenShiftModal = false; showShiftModal = false"
-  />
+  /> -->
 
   <!-- Settings Dialog -->
   <SettingsDialog v-model="settingsOpen" />
@@ -209,6 +206,7 @@ const receiptData = ref(null)
 const selectedInvoice = ref(null)
 const selectedCustomer = ref(null)
 const selectedPatient = ref(null)
+const patientSectionRef = ref(null)
 const user = ref(null)
 
 const settingsStore = useSettingsStore()
@@ -248,7 +246,7 @@ const handleMenuChange = (menu) => {
       cartStore.mode = 'sale'
       activeMenu.value = menu
       selectedInvoice.value = null
-      cartStore.clearCart()
+      clearCartAndPatient()
       cartStore.isReturn = 0
       break
 
@@ -299,61 +297,104 @@ const handlePatientSelected = (patient) => {
   selectedPatient.value = patient
 }
 
+// cartStore.clearCart() alone leaves selectedPatient stuck selected (found
+// while checking cart.js - clearCart() is called from 10 different spots
+// below and none of them reset the patient, so the customer field would
+// stay disabled and the next sale would silently reuse the old patient).
+const clearCartAndPatient = () => {
+  cartStore.clearCart()
+  selectedPatient.value = null
+  patientSectionRef.value?.clearPatient()
+}
+
 // Handle "Load Prescriptions" (from PatientSection component)
 // Mirrors add_medication_to_cart() in pharmacy_pos.js: for each pending
 // Medication Request, find the matching product, skip if out of stock,
 // otherwise add the remaining (un-invoiced) quantity to the cart.
 //
-// ASSUMPTIONS I couldn't verify without stores/products.js and
-// stores/cart.js:
-//   - productsStore.products items expose `item_code` and `stock_qty`
-//     (matches the FilterBar/CategoryFilter thresholds already in place)
-//   - a Medication Request's `medication` field matches a product's
-//     `medication_name` OR its `medication_item` matches `item_code`
-//   - cartStore.addToCart(product, qty) accepts a quantity as its second
-//     argument. handleAddToCart() above only ever calls it with a single
-//     product and no explicit qty, so this needs confirming - if
-//     addToCart doesn't support a qty param, tell me and I'll adjust to
-//     call it in a loop or extend the store instead.
-const handlePrescriptionsLoaded = ({ patient, medicationRequests }) => {
+// cartStore.addToCart(product, barcode) reads the quantity to add from
+// product.qty (defaulting to 1) and checks stock via product.actual_qty,
+// NOT stock_qty and NOT a second qty argument - confirmed from cart.js.
+// Handle "Load Prescriptions" (from PatientSection component)
+// Mirrors add_medication_to_cart() in pharmacy_pos.js: for each pending
+// Medication Request, find the linked Item, fetch its price + stock
+// FRESH from the backend (rather than trusting whatever's already sitting
+// in productsStore.products - that list can be paginated/stale, and its
+// pricing is nested under uom_prices[stock_uom], not a flat `rate`, which
+// is exactly why prices were coming back as 0 before), then add the
+// remaining (un-invoiced) quantity to the cart.
+const handlePrescriptionsLoaded = async ({ patient, medicationRequests }) => {
   if (!medicationRequests || medicationRequests.length === 0) {
     window.$toast?.info(__('No pending medication requests found'))
     return
   }
 
+  const priceList = productsStore.selectedPriceList
+  const warehouse = productsStore.selectedWarehouse
+  const billingCustomer = selectedPatient.value?.customer || selectedCustomer.value?.name || null
+
   const outOfStock = new Set()
+  const notFound = new Set()
   let addedCount = 0
 
   for (const req of medicationRequests) {
     const remainingQty = (req.total_dispensable_quantity || req.quantity) - (req.qty_invoiced || 0)
     if (remainingQty <= 0) continue
 
-    const product = productsStore.products.find(
-      p => p.medication_name === req.medication || p.item_code === req.medication_item
-    )
-
-    if (!product) {
-      console.warn(`Medication ${req.medication} not found in loaded products`)
+    if (!req.medication_item) {
+      console.warn(`Medication Request ${req.name} has no linked Item (medication_item)`)
+      notFound.add(req.medication)
       continue
     }
 
-    if ((product.stock_qty || 0) <= 0) {
+    // Cached product (if loaded) just supplies image/item_group for free -
+    // price and stock always come fresh from the fetch below.
+    const cachedProduct = productsStore.products.find(p => p.item_code === req.medication_item)
+
+    const priceAndStock = await shiftStore.getItemPriceAndStock(
+      req.medication_item, priceList, billingCustomer, warehouse
+    )
+
+    if (!priceAndStock) {
+      console.warn(`Could not fetch price/stock for item ${req.medication_item} (${req.medication})`)
+      notFound.add(req.medication)
+      continue
+    }
+
+    const product = { ...cachedProduct, ...priceAndStock }
+
+    console.log('[Prescription match]', {
+      requested_medication: req.medication,
+      requested_medication_item: req.medication_item,
+      product,
+      price_list: priceList,
+      warehouse,
+      billing_customer: billingCustomer
+    })
+
+    if ((product.actual_qty || 0) <= 0) {
       outOfStock.add(req.medication)
       continue
     }
 
     const added = cartStore.addToCart({
       ...product,
+      qty: remainingQty,
       medication_request: req.name,
       dosage_form: req.dosage_form || product.dosage_form,
       dosage: req.dosage,
       period: req.period,
       comment: req.comment
-    }, remainingQty)
+    })
 
-    if (added !== false) addedCount++
+    if (added) addedCount++
   }
 
+  if (notFound.size > 0) {
+    window.$toast?.warning(
+      __('Could not find item/price for: {0}', [[...notFound].join(', ')])
+    )
+  }
   if (outOfStock.size > 0) {
     window.$toast?.warning(
       __('Loaded {0} medication(s). Out of stock: {1}', [addedCount, [...outOfStock].join(', ')])
@@ -366,7 +407,7 @@ const handlePrescriptionsLoaded = ({ patient, medicationRequests }) => {
 // Handle invoice selected (from Cart component)
 const handleInvoiceSelected = (invoice) => {
 
-  cartStore.clearCart()
+  clearCartAndPatient()
 
   if (invoice.returnable_items && invoice.returnable_items.length) {
 
@@ -481,7 +522,7 @@ const handleReturnTransaction = async (returnData) => {
     }
 
     // نظّف الـ state
-    cartStore.clearCart()
+    clearCartAndPatient()
     selectedInvoice.value = null
     activeMenu.value = 'pos'
 
@@ -535,7 +576,7 @@ const handleReceiptPrinted = async (receiptDataParam) => {
   } catch (error) {
     if (window.$toast) window.$toast.error(error.message || 'Failed to submit invoice')
   } finally {
-    cartStore.clearCart()
+    clearCartAndPatient()
     selectedInvoice.value = null
     showReceiptModal.value = false
     activeMenu.value = 'pos'
@@ -578,7 +619,7 @@ try {
   }
 
   // Clear cart and selected invoice
-  cartStore.clearCart()
+  clearCartAndPatient()
   selectedInvoice.value = null
 
   // Show receipt modal for return
@@ -596,7 +637,7 @@ try {
 // Handle return cancelled
 const handleReturnCancelled = () => {
   console.log('Return cancelled')
-  cartStore.clearCart()
+  clearCartAndPatient()
   selectedInvoice.value = null
 
   if (window.$toast) {
@@ -610,7 +651,7 @@ const handleShiftClosed = async (shift) => {
   console.log('shift user', shift.user)
 
   showOpenShiftModal.value = true
-  cartStore.clearCart()
+  clearCartAndPatient()
   selectedInvoice.value = null
 }
 
@@ -627,7 +668,7 @@ const startBlank = () => {
 const closeReceiptModal = () => {
   showReceiptModal.value = false
   receiptData.value = null
-  cartStore.clearCart()
+  clearCartAndPatient()
 }
 
 // Proceed after print - SAVE INVOICE HERE
@@ -655,7 +696,7 @@ const proceedAfterPrint = async (receiptDataParam) => {
       }
 
       // Clear cart and close modal
-      cartStore.clearCart()
+      clearCartAndPatient()
       selectedInvoice.value = null
       showReceiptModal.value = false
       activeMenu.value = 'pos'
@@ -669,7 +710,7 @@ const proceedAfterPrint = async (receiptDataParam) => {
       window.$toast.error('Failed to save invoice, but transaction was completed')
     }
 
-    cartStore.clearCart()
+    clearCartAndPatient()
     selectedInvoice.value = null
     showReceiptModal.value = false
     activeMenu.value = 'pos'
@@ -780,7 +821,7 @@ useKeyboardShortcuts({
   // Ctrl+N → كارت جديد (clear)
   onNew: () => {
     if (showReceiptModal.value) return
-    cartStore.clearCart()
+    clearCartAndPatient()
   },
 
   // Ctrl+S → حفظ (لو الـ receipt modal مفتوح = save invoice)
