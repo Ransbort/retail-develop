@@ -33,7 +33,7 @@
           @mousedown.prevent="createNewPatient"
         >
           <span>+</span>
-          <span>{{ __('Create New Patient') }}</span>
+          <span>{{ __('Create a new Patient') }}</span>
         </div>
 
         <div v-if="isSearchingPatients" class="px-3 py-2 text-sm opacity-70">
@@ -54,6 +54,15 @@
             {{ [patient.patient_name, patient.mobile, patient.name].filter(Boolean).join(', ') }}
           </div>
         </div>
+
+        <div
+          class="px-3 py-2 cursor-pointer flex items-center gap-2 border-t text-sm opacity-70 hover:opacity-100"
+          :style="{ borderColor: 'var(--input-border)' }"
+          @mousedown.prevent="openAdvancedSearch"
+        >
+          <span>🔍</span>
+          <span>{{ __('Advanced Search') }}</span>
+        </div>
       </div>
     </div>
 
@@ -65,7 +74,7 @@
       :disabled="!selectedPatient || isLoadingPrescriptions"
       @click="loadPrescriptions"
     >
-      <!-- <span>💊</span> -->
+      <span>💊</span>
       <span v-if="isLoadingPrescriptions">{{ __('Loading...') }}</span>
       <span v-else>{{ __('Load Prescriptions') }}</span>
     </button>
@@ -78,10 +87,10 @@ import { useShiftStore } from '@/stores/shift.js'
 import { useSettingsStore } from '@/stores/settings'
 
 const props = defineProps({
-  // Show the "+ Create New Patient" row. Off by default since there's no
-  // patient-creation modal wired up yet - flip this on once you have one
-  // and handle the `create-new-patient` event below.
-  allowCreate: { type: Boolean, default: false }
+  // Show the "+ Create a new Patient" row, matching native Frappe Link
+  // field behavior. Emits `create-new-patient` - parent should open
+  // whatever patient-creation modal/route you use (e.g. /app/patient/new).
+  allowCreate: { type: Boolean, default: true }
 })
 
 // emits:
@@ -118,8 +127,6 @@ const loadPatients = async (term = '') => {
   const token = ++patientSearchToken
   try {
     isSearchingPatients.value = true
-    // Mirrors shiftStore.getCustomers - add a matching `getPatients` action
-    // to stores/shift.js if it doesn't exist yet.
     const list = await shiftStore.getPatients(term)
     if (token !== patientSearchToken) return list
     patients.value = list || []
@@ -168,6 +175,13 @@ const createNewPatient = () => {
   closePatientDropdown()
 }
 
+const openAdvancedSearch = () => {
+  // Same destination the native Frappe Link field's "Advanced Search"
+  // option goes to - the standard Patient list view.
+  window.open('/app/patient', '_blank')
+  closePatientDropdown()
+}
+
 const clearPatient = () => {
   applySelectedPatient(null)
   emit('patient-selected', null)
@@ -210,8 +224,8 @@ const loadPrescriptions = async () => {
   try {
     // Mirrors the Medication Request query in load_patient_medications()
     // (pharmacy_pos.js line ~2090): active, unbilled/partly-billed requests
-    // for this patient. Add a matching `getPatientPrescriptions` action to
-    // stores/shift.js if it doesn't exist yet.
+    // for this patient. Needs a matching whitelisted method added to
+    // retail/retail/api/patient.py (see companion notes).
     const medicationRequests = await shiftStore.getPatientPrescriptions(selectedPatient.value)
 
     emit('prescriptions-loaded', {
