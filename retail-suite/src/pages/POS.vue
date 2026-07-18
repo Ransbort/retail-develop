@@ -8,7 +8,7 @@
       @shift-error="handleShiftError"
     />
 
-    <div class="hide-print flex flex-row pl-0 p-4 h-full gap-2 antialiased"
+    <div class="hide-print flex flex-row pl-0 p-4 min-h-0 gap-2 antialiased"
         :style="{
         background: isDark ? 'var(--bg)' : 'var(--card-bg)',
         color: 'var(--text-main)'
@@ -24,7 +24,18 @@
       <div class="w-full flex flex-col gap-4">
         
 
-        <div class="flex-1 flex gap-4 min-h-0">
+        <div class="flex-1 flex gap-4 h-full">
+
+          <!-- Products Section -->
+          <div
+            class="flex-grow flex flex-col h-full p-4 rounded-xl"
+            :style="{
+              background: 'var(--content-panel-bg)',
+              border: '1px solid var(--content-panel-border)',
+              boxShadow: 'var(--content-panel-shadow)'
+            }"
+          >
+
           <!-- Customer Bar (full width, above products + cart) -->
         <div
           class="space-y-4 rounded-xl p-4"
@@ -63,17 +74,9 @@
                 :is-loading="productsStore.isLoading"
                 @reload="productsStore.loadProductsFromFrappeDB(true)" />
             </div>
+
+          
         </div>
-			
-          <!-- Products Section -->
-          <div
-            class="flex-grow flex flex-col h-full p-4 rounded-xl"
-            :style="{
-              background: 'var(--content-panel-bg)',
-              border: '1px solid var(--content-panel-border)',
-              boxShadow: 'var(--content-panel-shadow)'
-            }"
-          >
           
           <div class="flex-1 overflow-hidden">
               <ProductGrid :search-keyword="searchKeyword" :stock-filter="selectedStockFilter" />
@@ -124,6 +127,7 @@
     @delete-draft="handleDeleteDraft"
     @select-return="handleSelectReturn"
   />
+	
   <!-- No Shift Overlay -->
   <NoShiftOverlay
     v-if="!shiftStore.isShiftOpen && !isCheckingShift && !showShiftModal && !showOpenShiftModal"
@@ -131,7 +135,7 @@
     @open="showShiftModal = true"
   />
 
-  <!-- <ShiftSelectionModal
+  <ShiftSelectionModal
     v-if="showShiftModal && shiftStore.availableShifts.length > 0"
     :shifts="shiftStore.availableShifts"
     @select="handleShiftSelected"
@@ -143,7 +147,7 @@
     v-if="(showShiftModal && shiftStore.availableShifts.length === 0) || showOpenShiftModal"
     @success="handleShiftOpened"
     @close="showOpenShiftModal = false; showShiftModal = false"
-  /> -->
+  />
 
   <!-- Settings Dialog -->
   <SettingsDialog v-model="settingsOpen" />
