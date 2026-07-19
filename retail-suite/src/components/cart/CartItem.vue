@@ -34,7 +34,7 @@
             :alt="item.item_name"
             class="h-6 w-6 object-cover"
           />
-          <span v-else class="text-xl">💊</span>
+          <span v-else class="text-xl"></span>
         </div>
       </div>
 
@@ -60,14 +60,14 @@
             class="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 w-fit"
             :style="{ background: 'rgba(16,185,129,0.12)', color: '#0F6E56' }"
           >
-            💊 {{ item.dosage_form }}
+            {{ item.dosage_form }}
           </span>
           <span
             v-if="item.dosage || item.period"
             class="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 w-fit"
             :style="{ background: 'rgba(148,163,184,0.18)', color: 'var(--text-muted)' }"
           >
-            📅 {{ [item.dosage, item.period].filter(Boolean).join(' • ') }}
+            {{ [item.dosage, item.period].filter(Boolean).join(' • ') }}
           </span>
         </div>
 
