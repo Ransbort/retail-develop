@@ -159,11 +159,18 @@ export const useCartStore = defineStore('cart', () => {
       }
     }
 
+    // Distinct prescriptions for the same item_code (e.g. two separate
+    // Medication Requests for Paracetamol) must NOT merge into one cart
+    // line - doing so would silently drop one prescription's dosage/
+    // comment/period. Only merge when medication_request matches too
+    // (both undefined counts as a match for ordinary, non-prescription
+    // items).
     const existing = cart.value.find(
       i => i.item_code === product.item_code
         && i.uom === product.uom
         && i.serial_no === (product.serial_no || '')
         && i.batch_no  === (product.batch_no  || '')
+        && (i.medication_request || null) === (product.medication_request || null)
     )
 
     if (existing) {
@@ -185,6 +192,16 @@ export const useCartStore = defineStore('cart', () => {
         serial_no:         product.serial_no  || '',
         batch_no:          product.batch_no   || '',
         addedAt:           new Date().toISOString(),
+        // ── Prescription fields (only present on items added via "Load
+        // Prescriptions" - see POS.vue's handlePrescriptionsLoaded). These
+        // must be carried through untouched or CartItem.vue's dosage_form/
+        // dosage+period badges and comment box render nothing.
+        medication_request: product.medication_request || null,
+        medication_name:    product.medication_name    || '',
+        dosage_form:         product.dosage_form  || '',
+        dosage:               product.dosage       || '',
+        period:               product.period       || '',
+        comment:              product.comment      || '',
       })
     }
 
@@ -402,6 +419,14 @@ export const useCartStore = defineStore('cart', () => {
         serial_no:         item.serial_no  || '',
         batch_no:          item.batch_no   || '',
         addedAt:           new Date().toISOString(),
+        // Preserve prescription metadata across draft save/reload too, if
+        // the backend echoes it back on the Sales Invoice Item row.
+        medication_request: item.medication_request || null,
+        medication_name:    item.medication_name    || '',
+        dosage_form:         item.dosage_form  || '',
+        dosage:               item.dosage       || '',
+        period:               item.period       || '',
+        comment:              item.comment      || '',
       })
     })
 
