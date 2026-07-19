@@ -100,6 +100,7 @@
               :selected-patient="selectedPatient"
               @submit="handleCartSubmit"
               @clear-invoice="handleClearInvoice"
+              @item-removed="handleCartItemRemoved"
             />
           </div>
         </div>
@@ -304,6 +305,24 @@ const handleCustomerSelected = (customer) => {
 // :disabled prop above already reflects this via `!!selectedPatient`.
 const handlePatientSelected = (patient) => {
   selectedPatient.value = patient
+  // Changing/clearing the patient means any previously loaded
+  // prescriptions belonged to someone else - start tracking fresh.
+  loadedPrescriptionIds.value = new Set()
+}
+
+// Tracks Medication Request names already added to the cart via "Load
+// Prescriptions", so pressing the button again doesn't re-add (and
+// re-stack quantity for) the same prescriptions. Reset whenever the
+// patient changes (above) or the cart is cleared (clearCartAndPatient).
+const loadedPrescriptionIds = ref(new Set())
+
+// If a prescribed item gets manually removed from the cart, forget that
+// its Medication Request was "loaded" - otherwise Load Prescriptions would
+// permanently skip it for the rest of this patient's visit.
+const handleCartItemRemoved = (removedItem) => {
+  if (removedItem?.medication_request) {
+    loadedPrescriptionIds.value.delete(removedItem.medication_request)
+  }
 }
 
 // cartStore.clearCart() alone leaves selectedPatient (and selectedCustomer)
@@ -314,6 +333,7 @@ const clearCartAndPatient = () => {
   cartStore.clearCart()
   selectedPatient.value = null
   selectedCustomer.value = null
+  loadedPrescriptionIds.value = new Set()
   patientSectionRef.value?.clearPatient()
   customerSectionRef.value?.clearCustomer()
 }
@@ -347,8 +367,14 @@ const handlePrescriptionsLoaded = async ({ patient, medicationRequests }) => {
   const outOfStock = new Set()
   const notFound = new Set()
   let addedCount = 0
+  let alreadyLoadedCount = 0
 
   for (const req of medicationRequests) {
+    if (loadedPrescriptionIds.value.has(req.name)) {
+      alreadyLoadedCount++
+      continue
+    }
+
     const remainingQty = (req.total_dispensable_quantity || req.quantity) - (req.qty_invoiced || 0)
     if (remainingQty <= 0) continue
 
@@ -398,7 +424,15 @@ const handlePrescriptionsLoaded = async ({ patient, medicationRequests }) => {
       comment: req.comment
     })
 
-    if (added) addedCount++
+    if (added) {
+      addedCount++
+      loadedPrescriptionIds.value.add(req.name)
+    }
+  }
+
+  if (alreadyLoadedCount > 0 && addedCount === 0 && outOfStock.size === 0 && notFound.size === 0) {
+    window.$toast?.info(__('All prescriptions already loaded'))
+    return
   }
 
   if (notFound.size > 0) {
