@@ -173,7 +173,7 @@
       </div>
 
       <!-- Price -->
-      <p class="text-base font-bold" :style="{ color: '#16a34a' }" dir="ltr">
+      <p class="text-xs font-bold" :style="{ color: '#16a34a' }" dir="ltr">
         {{ formatPrice(itemTotal) }}
       </p>
     </div>
