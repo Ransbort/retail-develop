@@ -170,7 +170,11 @@ const onPatientSearchInput = () => {
 const openPatientDropdown = () => {
   if (props.disabled) return
   isPatientDropdownOpen.value = true
-  if (!patients.value.length) loadPatients(patientSearchQuery.value.trim())
+  // Always fetch fresh on focus - previously this only fetched when
+  // patients.value was empty, so a stale filtered list (e.g. just the one
+  // patient from the last search) would linger forever after a clear,
+  // since clearing the patient never emptied `patients`.
+  loadPatients(patientSearchQuery.value.trim())
 }
 
 const closePatientDropdown = () => {
@@ -182,6 +186,10 @@ const applySelectedPatient = (patient) => {
   selectedPatient.value = patient?.name || ''
   patientInfo.value = patient ? { ...patient } : {}
   patientSearchQuery.value = patient ? (patient.patient_name || patient.name) : ''
+  // Defensively drop the previous (possibly filtered/stale) results list
+  // too - openPatientDropdown() now always refetches on focus anyway, but
+  // this avoids a flash of the old list before the fresh one arrives.
+  if (!patient) patients.value = []
 }
 
 const selectPatient = (patient) => {
