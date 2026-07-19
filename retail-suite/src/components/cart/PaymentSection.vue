@@ -17,8 +17,8 @@
         class="flex justify-between mb-2 text-sm w-full"
         :style="{ color: 'var(--text-sub)' }"
       >
+		<div>{{ __('Subtotal') }}</div>
         <div>{{ formatPrice(cartStore.subtotal) }}</div>
-        <div>{{ __('Subtotal') }}</div>
       </div>
 
       <hr v-if="cartStore.taxAmount > 0 || cartStore.taxRate > 0" class="my-2">
@@ -51,8 +51,8 @@
           borderTop: '1px solid var(--card-border)'
         }"
       >
-        <div>{{ formatPrice(cartStore.totalPrice) }}</div>
         <div>{{ __('Total') }}</div>
+		<div>{{ formatPrice(cartStore.totalPrice) }}</div>
       </div>
     </div>
 
