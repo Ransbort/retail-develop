@@ -305,8 +305,12 @@ const handleUpdateQuantity = (item_code, newQuantity) => {
 
 const handleRemoveItem = (item_code) => {
   if (cartStore.isReadOnly) return
+  // Capture the item before removing it - need medication_request (if any)
+  // for the parent to reconcile loadedPrescriptionIds, and that's gone
+  // once removeFromCart() runs.
+  const removedItem = cartStore.cart.find(i => i.item_code === item_code)
   cartStore.removeFromCart(item_code)
-  emit('item-removed', item_code)
+  emit('item-removed', removedItem || { item_code })
 }
 
 /* ──────────────────────────────────────────────────────────
