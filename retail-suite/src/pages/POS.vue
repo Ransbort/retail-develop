@@ -699,7 +699,12 @@ const handleReturnCancelled = () => {
 const handleShiftClosed = async (shift) => {
   console.log('Shift closed:', shift)
   console.log('Open Closing Shift modal')
-  console.log('shift user', shift.user)
+  console.log('shift user', shift?.user)
+
+  // Belt-and-suspenders: make sure shift state is actually cleared here too,
+  // even if CloseShiftModal already does it - this is what previously left
+  // isShiftOpen/pos_profile stale in the persisted store after closing.
+  shiftStore.resetShift()
 
   showOpenShiftModal.value = true
   clearCartAndPatient()
