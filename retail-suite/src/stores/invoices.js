@@ -157,7 +157,11 @@ export const useInvoicesStore = defineStore('invoices', () => {
 
       if (!transactionData?.items?.length) throw new Error('Invalid transaction data - items missing')
       if (!shiftStore.pos_profile) throw new Error('POS Profile not loaded')
-      if (!shiftStore.currentCustomer) throw new Error('Customer not selected')
+      // Use the customer resolved in Cart.vue (patient's linked customer,
+      // or the manually selected customer) - NOT shiftStore.currentCustomer,
+      // which is only ever populated by the CustomerSection selection path
+      // and stays null for patient-only checkouts.
+      if (!transactionData?.customer) throw new Error('Customer not selected')
 
       const { summary, paymentMethod, items, transactionId, mode } = transactionData
       const paidAmount  = parseFloat(summary.cash  ?? 0)
@@ -166,7 +170,7 @@ export const useInvoicesStore = defineStore('invoices', () => {
       const invoicePayload = {
         "doctype": 'Sales Invoice',
         "name": transactionData.draftName || undefined,
-        "customer": shiftStore.currentCustomer.name,
+        "customer": transactionData.customer,
         "posting_date": new Date().toISOString().slice(0, 10),
         "pos_profile": shiftStore.pos_profile.name,
         "posa_pos_opening_shift": shiftStore.pos_opening_shift?.name,
@@ -244,6 +248,7 @@ export const useInvoicesStore = defineStore('invoices', () => {
   try {
     console.log('🔍 Apply Discount On (Save Invoice):', transactionData.applyDiscountOn)
     const shiftStore = useShiftStore()
+    if (!transactionData?.customer) throw new Error('Customer not selected')
     const { summary, paymentMethod, items } = transactionData
     const paidAmount  = parseFloat(summary.cash  ?? 0)
     const totalAmount = parseFloat(summary.total ?? 0)
@@ -254,7 +259,7 @@ export const useInvoicesStore = defineStore('invoices', () => {
       "is_pos": 1,
       "ignore_pricing_rule": 1,
       "company": shiftStore.pos_profile.company,
-      "customer": shiftStore.currentCustomer.name,
+      "customer": transactionData.customer,
       "posting_date": new Date().toISOString().slice(0, 10),
       "pos_profile": shiftStore.pos_profile.name,
       "payments": [{ mode_of_payment: paymentMethod, amount: paidAmount }],
@@ -312,6 +317,7 @@ export const useInvoicesStore = defineStore('invoices', () => {
   async function proceedInvoice(transactionData) {
     try {
       const shiftStore = useShiftStore()
+      if (!transactionData?.customer) throw new Error('Customer not selected')
       const { summary, paymentMethod, items, invoiceId } = transactionData
       const paidAmount  = parseFloat(summary.cash  ?? 0)
       const totalAmount = parseFloat(summary.total ?? 0)
@@ -323,7 +329,7 @@ export const useInvoicesStore = defineStore('invoices', () => {
         ignore_pricing_rule: 1,
         company: shiftStore.pos_profile.company,
         naming_series: shiftStore.pos_profile.naming_series,
-        customer: shiftStore.currentCustomer.name,
+        customer: transactionData.customer,
         posting_date: new Date().toISOString().slice(0, 10),
         pos_profile: shiftStore.pos_profile.name,
         paymentMethod: paymentMethod,
