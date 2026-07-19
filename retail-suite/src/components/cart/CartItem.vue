@@ -1,6 +1,6 @@
 <template>
   <div
-    class="select-none mb-3 rounded-lg w-full py-2 px-2 flex justify-center transition-all duration-300"
+    class="relative select-none mb-3 rounded-xl w-full p-3 transition-all duration-300"
     :style="{
       background: 'var(--item-bg)',
       color: 'var(--text-main)',
@@ -8,23 +8,41 @@
     }"
     :class="{ 'animate-pulse': isUpdating }"
   >
-    <!-- Product Image -->
-    <div class="flex-shrink-0 mr-2">
-      <img
-        :src="item.image"
-        :alt="item.item_name"
-        class="rounded-lg h-10 w-10 shadow object-cover"
-        :style="{ background: 'var(--card-bg)' }"
-      />
-    </div>
+    <!-- Remove (×) -->
+    <button
+      @click="handleRemove"
+      class="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-full text-sm leading-none transition-colors duration-200 focus:outline-none"
+      :style="{ color: 'var(--text-muted)' }"
+      @mouseover="$event.currentTarget.style.background = 'var(--warning-bg)'"
+      @mouseleave="$event.currentTarget.style.background = 'transparent'"
+      :disabled="isUpdating"
+      :title="__('Remove this {0} from cart?', { 0: props.item.item_name })"
+    >
+      ×
+    </button>
 
-    <!-- Product Info -->
-    <div class="flex-grow min-w-0">
-      <div  class="flex flex-col">
+    <div class="flex gap-3 pr-5">
+      <!-- Icon -->
+      <div class="flex-shrink-0">
+        <div
+          class="h-11 w-11 rounded-xl flex items-center justify-center overflow-hidden shadow"
+          :style="{ background: primaryColor }"
+        >
+          <img
+            v-if="item.image"
+            :src="item.image"
+            :alt="item.item_name"
+            class="h-11 w-11 object-cover"
+          />
+          <span v-else class="text-xl">💊</span>
+        </div>
+      </div>
 
+      <!-- Info -->
+      <div class="flex-grow min-w-0">
         <!-- Product Name -->
         <h5
-          class="text-sm font-medium truncate leading-tight"
+          class="text-sm font-bold leading-snug"
           :title="item.item_name"
           :style="{ color: 'var(--text-main)' }"
         >
@@ -35,28 +53,28 @@
              present on items added via "Load Prescriptions" -->
         <div
           v-if="item.dosage_form || item.dosage || item.period"
-          class="flex items-center gap-1 mt-0.5 flex-wrap"
+          class="flex items-center gap-1 mt-1 flex-wrap"
         >
           <span
             v-if="item.dosage_form"
             class="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 w-fit"
-            :style="{ background: 'rgba(99,102,241,0.1)', color: '#4338ca' }"
+            :style="{ background: 'rgba(16,185,129,0.12)', color: '#0F6E56' }"
           >
             💊 {{ item.dosage_form }}
           </span>
           <span
             v-if="item.dosage || item.period"
-            class="text-xs px-1.5 py-0.5 rounded w-fit"
-            :style="{ background: 'rgba(16,185,129,0.1)', color: '#0F6E56' }"
+            class="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 w-fit"
+            :style="{ background: 'rgba(148,163,184,0.18)', color: 'var(--text-muted)' }"
           >
-            {{ [item.dosage, item.period].filter(Boolean).join(' • ') }}
+            📅 {{ [item.dosage, item.period].filter(Boolean).join(' • ') }}
           </span>
         </div>
 
         <!-- Serial No -->
         <span
           v-if="item.serial_no"
-          class="text-xs px-1.5 py-0.5 rounded mt-0.5 w-fit"
+          class="text-xs px-1.5 py-0.5 rounded mt-1 w-fit inline-block"
           :style="{ background: 'rgba(16,185,129,0.1)', color: '#0F6E56' }"
         >
           # {{ item.serial_no }}
@@ -65,7 +83,7 @@
         <!-- Batch No -->
         <span
           v-if="item.batch_no"
-          class="text-xs px-1.5 py-0.5 rounded mt-0.5 w-fit"
+          class="text-xs px-1.5 py-0.5 rounded mt-1 w-fit inline-block"
           :style="{ background: 'rgba(99,102,241,0.1)', color: '#4338ca' }"
         >
           Batch: {{ item.batch_no }}
@@ -74,52 +92,44 @@
         <!-- UOM -->
         <span
           v-if="item.uom && item.uom !== item.stock_uom"
-          class="text-xs px-1.5 py-0.5 rounded mt-0.5 w-fit"
+          class="text-xs px-1.5 py-0.5 rounded mt-1 w-fit inline-block"
           :style="{ background: 'rgba(245,158,11,0.1)', color: '#b45309' }"
         >
           {{ item.uom }}
         </span>
 
-        <!-- Product Price & Category -->
-        <div class="flex flex-col mt-1" dir="ltr">
-          <p class="text-xs font-semibold" :style="{ color: 'var(--text-sub)' }">
-            {{ formatPrice(item.rate) }}
-          </p>
-          <span
-            v-if="item.category"
-            class="text-xs rounded-full"
-            :style="{ background: 'var(--card-bg)', color: 'var(--text-muted)' }"
-          >
-            {{ item.category }}
-          </span>
-        </div>
+        <!-- Category -->
+        <span
+          v-if="item.category"
+          class="text-xs mt-1 block"
+          :style="{ color: 'var(--text-muted)' }"
+        >
+          {{ item.category }}
+        </span>
 
-        <!-- Item Total -->
-        <p class="text-xs mt-1" :style="{ color: 'var(--text-muted)' }" dir="ltr">
-          {{ __('Total') }}:
-          <span class="font-semibold" :style="{ color: 'var(--primary-600)' }">
-            {{ formatPrice(itemTotal) }}
-          </span>
-        </p>
+        <!-- Comment (e.g. dosing instructions from the prescription) -->
+        <div
+          v-if="item.comment"
+          class="text-xs mt-2 px-2 py-1.5 rounded-lg"
+          :style="{ background: 'rgba(245,158,11,0.1)', color: '#b45309' }"
+        >
+          💬 {{ item.comment }}
+        </div>
       </div>
     </div>
 
-    <!-- Quantity Controls -->
-    <div class="py-1 ml-2 flex-shrink-0">
-      <div class="w-28 grid grid-cols-3 gap-1">
-
+    <!-- Bottom row: quantity controls + price -->
+    <div class="flex items-center justify-between mt-3">
+      <div class="flex items-center gap-2">
         <!-- Decrease Button -->
         <button
           @click="decreaseQuantity"
-          class="rounded-lg text-center py-1 focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          :style="{
-            background: 'var(--input-border)',
-            color: 'var(--text-main)'
-          }"
+          class="w-7 h-7 rounded-lg flex items-center justify-center focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          :style="{ background: primaryColor, color: '#fff' }"
           :disabled="isUpdating || isSerialItem"
           :title="__('Decrease  Quantity')"
         >
-          <MinusIcon class="w-3 h-3 mx-auto" />
+          <MinusIcon class="w-3 h-3" />
         </button>
 
         <!-- Quantity Input -->
@@ -133,7 +143,7 @@
             type="number"
             min="1"
             max="999"
-            class="rounded-lg text-center shadow focus:outline-none text-sm w-full py-1 transition-all duration-200"
+            class="rounded-lg text-center text-sm w-10 py-1 focus:outline-none transition-all duration-200"
             :style="{
               background: 'var(--input-bg)',
               color: 'var(--text-main)',
@@ -152,40 +162,25 @@
         <!-- Increase Button -->
         <button
           @click="increaseQuantity"
-          class="rounded-lg text-center py-1 focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          :style="{
-            background: 'var(--input-border)',
-            color: 'var(--text-main)'
-          }"
+          class="w-7 h-7 rounded-lg flex items-center justify-center focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          :style="{ background: primaryColor, color: '#fff' }"
           :disabled="isUpdating || item.qty >= 999 || isSerialItem"
           :title="__('Increase  Quantity')"
         >
-          <PlusIcon class="w-3 h-3 mx-auto" />
+          <PlusIcon class="w-3 h-3" />
         </button>
       </div>
 
-      <!-- Remove Button -->
-      <button
-        @click="handleRemove"
-        class="w-full mt-1 text-xs rounded px-2 py-1 transition-colors duration-200 focus:outline-none"
-        :style="{
-          color: 'var(--warning-border)',
-          background: 'transparent'
-        }"
-        @mouseover="$event.currentTarget.style.background = 'var(--warning-bg)'"
-        @mouseleave="$event.currentTarget.style.background = 'transparent'"
-        :disabled="isUpdating"
-        :title="__('Remove this {0} from cart?', { 0: props.item.item_name })"
-      >
-        <TrashIcon class="w-3 h-3 inline mr-1" />
-        {{ __('Remove') }}
-      </button>
+      <!-- Price -->
+      <p class="text-base font-bold" :style="{ color: '#16a34a' }" dir="ltr">
+        {{ formatPrice(itemTotal) }}
+      </p>
     </div>
 
     <!-- Loading Overlay -->
     <div
       v-if="isUpdating"
-      class="absolute inset-0 rounded-lg flex items-center justify-center"
+      class="absolute inset-0 rounded-xl flex items-center justify-center"
       :style="{ background: 'var(--card-bg)', opacity: 0.75 }"
     />
   </div>
@@ -420,43 +415,6 @@ const updateQuantity = async (newQuantity) => {
 </script>
 
 <style scoped>
-/* Item container styling */
-.bg-gray-50 {
-  background-color: #f8fafc;
-}
-
-.bg-gray-100 {
-  background-color: #f1f5f9;
-}
-
-.bg-gray-200 {
-  background-color: #e2e8f0;
-}
-
-.bg-gray-600 {
-  background-color: #475569;
-}
-
-.bg-gray-700 {
-  background-color: #334155;
-}
-
-.text-blue-gray-600 {
-  color: #475569;
-}
-
-.text-blue-gray-700 {
-  color: #334155;
-}
-
-.hover\:bg-gray-100:hover {
-  background-color: #f1f5f9;
-}
-
-.hover\:bg-gray-700:hover {
-  background-color: #334155;
-}
-
 /* Quantity input styling */
 input[type="number"] {
   -moz-appearance: textfield;
@@ -477,42 +435,7 @@ input:focus {
   outline: none;
 }
 
-/* Error states */
-.border-red-300 {
-  border-color: #fca5a5;
-}
-
-.bg-red-50 {
-  background-color: #fef2f2;
-}
-
-.text-red-500 {
-  color: #ef4444;
-}
-
-.text-red-700 {
-  color: #b91c1c;
-}
-
-.hover\:text-red-700:hover {
-  color: #b91c1c;
-}
-
-.hover\:bg-red-50:hover {
-  background-color: #fef2f2;
-}
-
 /* Loading animation */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -546,12 +469,6 @@ button:disabled:hover {
   color: inherit;
 }
 
-/* Category badge */
-.text-xs.bg-gray-200 {
-  font-size: 0.625rem;
-  line-height: 1;
-}
-
 /* Truncate long text */
 .truncate {
   overflow: hidden;
@@ -561,19 +478,6 @@ button:disabled:hover {
 
 .min-w-0 {
   min-width: 0;
-}
-
-/* Focus ring colors */
-.focus\:ring-blue-gray-300:focus {
-  --tw-ring-color: #cbd5e1;
-}
-
-.focus\:ring-cyan-300:focus {
-  --tw-ring-color: #67e8f9;
-}
-
-.focus\:ring-red-300:focus {
-  --tw-ring-color: #fca5a5;
 }
 
 /* Hover effects for buttons */
@@ -590,17 +494,8 @@ img {
   object-fit: cover;
 }
 
-/* Error indicator */
-.bg-red-500 {
-  background-color: #ef4444;
-}
-
 /* Responsive adjustments */
 @media (max-width: 640px) {
-  .w-28 {
-    width: 6rem;
-  }
-
   .text-sm {
     font-size: 0.75rem;
   }
@@ -608,18 +503,5 @@ img {
   .text-xs {
     font-size: 0.625rem;
   }
-}
-
-/* Loading overlay */
-.bg-opacity-70 {
-  background-opacity: 0.7;
-}
-
-.absolute.inset-0 {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
 }
 </style>
