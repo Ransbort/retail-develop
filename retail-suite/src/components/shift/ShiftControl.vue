@@ -200,7 +200,7 @@ const handleAddToCart = (product) => {
 const currentShift = computed(() => shiftStore.currentShift)
 const isDark = computed(() => settingsStore.settings.appearance.theme === 'dark')
 const primaryColor = computed(() => {
-  return settingsStore.settings.value?.appearance?.primaryColor || '#06b6d4';
+  return settingsStore.settings?.appearance?.primaryColor || '#06b6d4';
 })
 
 const updateShiftDuration = () => {
