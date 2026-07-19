@@ -43,10 +43,10 @@
         <!-- Product Name -->
         <h5
           class="text-sm font-bold leading-snug"
-          :title="item.item_name"
+          :title="displayName"
           :style="{ color: 'var(--text-main)' }"
         >
-          {{ item.item_name }}
+          {{ displayName }}
         </h5>
 
         <!-- Prescription badges (dosage form / dosage+period) - only
@@ -110,10 +110,11 @@
         <!-- Comment (e.g. dosing instructions from the prescription) -->
         <div
           v-if="item.comment"
-          class="text-xs mt-2 px-2 py-1.5 rounded-lg"
+          class="text-xs mt-2 px-2 py-1.5 rounded-lg truncate"
+          :title="item.comment"
           :style="{ background: 'rgba(245,158,11,0.1)', color: '#b45309' }"
         >
-          💬 {{ item.comment }}
+          💬 {{ truncatedComment }}
         </div>
       </div>
     </div>
@@ -227,6 +228,20 @@ const displayQuantity = ref(props.item.qty)
 const pendingQuantity = ref(props.item.qty)
 
 const isSerialItem = computed(() => !!props.item.serial_no)
+
+// req.medication (the Medication Request's full clinical/brand name, e.g.
+// "FUROSIMIDE 20MG INJ (LASIX)") is more meaningful for a dispensed drug
+// than the Item master's often-abbreviated item_name (e.g. "FU20 INJ").
+// Falls back to item_name for regular (non-prescription) retail items.
+const displayName = computed(() => props.item.medication_name || props.item.item_name)
+
+const COMMENT_MAX_LENGTH = 60
+const truncatedComment = computed(() => {
+  const comment = props.item.comment || ''
+  return comment.length > COMMENT_MAX_LENGTH
+    ? comment.slice(0, COMMENT_MAX_LENGTH).trimEnd() + '…'
+    : comment
+})
 
 // Computed properties
 const itemTotal = computed(() => {
