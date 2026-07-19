@@ -152,7 +152,13 @@ export const useShiftStore = defineStore('shift', {
     async loadActiveShifts() {
       try {
 
-        if (this.isShiftOpen && this.currentShift) {
+        // Only trust persisted state as "already loaded" if pos_profile is
+        // ALSO present - isShiftOpen/currentShift/pos_profile are persisted
+        // together, but any partial/stale persisted write (schema change,
+        // storage quota issue, etc.) could leave pos_profile null while the
+        // other two look fine, which would crash checkout later on
+        // shiftStore.pos_profile.*
+        if (this.isShiftOpen && this.currentShift && this.pos_profile) {
           console.log('✅ Shift already loaded, skipping...')
           return true
         }
@@ -186,7 +192,15 @@ export const useShiftStore = defineStore('shift', {
     },
 
     async setActiveShift(shiftData) {
-        this.pos_profile      = shiftData.pos_profile || null
+        if (!shiftData?.pos_profile) {
+          console.error('❌ setActiveShift called without a pos_profile - aborting activation')
+          if (window.$toast) {
+            window.$toast.error('This shift has no POS Profile attached. Please contact an administrator.')
+          }
+          return false
+        }
+
+        this.pos_profile      = shiftData.pos_profile
         this.pos_profile_name = shiftData.pos_profile?.name || null
         this.pos_opening_shift = shiftData.pos_opening_shift || null
 
@@ -238,6 +252,7 @@ export const useShiftStore = defineStore('shift', {
             console.error('Could not load POS taxes:', e)
         }
         this.getAvailablePosprofiles(this.pos_profile.company, this.pos_profile.currency)
+        return true
     },
 
     async getOpeningDialogData() {
@@ -305,12 +320,28 @@ export const useShiftStore = defineStore('shift', {
             closing_details: closing_details
         });
         console.log('Closing shift created:', closing_shift);
-        this.pos_opening_shift = null
+        this.resetShift()
         return closing_shift;
       } catch (error) {
         console.error('Error creating closing shift:', error);
         throw error;
       }
+    },
+
+    // Fully resets shift-related state - MUST be called whenever a shift is
+    // closed (previously only pos_opening_shift was cleared here, which left
+    // isShiftOpen/currentShift/pos_profile stale in the persisted store and
+    // caused loadActiveShifts() to wrongly treat a closed shift as "already
+    // loaded" on the next app load).
+    resetShift() {
+      this.isShiftOpen = false
+      this.currentShift = null
+      this.pos_profile = null
+      this.pos_profile_name = null
+      this.pos_opening_shift = null
+      this.currentCustomer = null
+      this.summary = null
+      this.payment_methods = []
     },
 
     // Get shift by ID
