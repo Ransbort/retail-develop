@@ -335,7 +335,6 @@
         class="absolute inset-0 flex items-center justify-center animate-pulse"
         :style="{ background: 'var(--icon-color-green)' }"
       >
-        <CheckIcon class="w-6 h-6" />
       </div>
     </button>
 
