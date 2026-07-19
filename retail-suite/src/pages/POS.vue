@@ -418,6 +418,12 @@ const handlePrescriptionsLoaded = async ({ patient, medicationRequests }) => {
       ...product,
       qty: remainingQty,
       medication_request: req.name,
+      // req.medication (e.g. "FUROSIMIDE 20MG INJ (LASIX)") is the full
+      // clinical/brand name from the Medication Request - more meaningful
+      // for a dispensed drug than product.item_name (the Item master's
+      // often-abbreviated name, e.g. "FU20 INJ"). CartItem.vue prefers
+      // this field when present.
+      medication_name: req.medication,
       dosage_form: req.dosage_form || product.dosage_form,
       dosage: req.dosage,
       period: req.period,
