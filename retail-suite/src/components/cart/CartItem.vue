@@ -32,7 +32,7 @@
             v-if="item.image"
             :src="item.image"
             :alt="item.item_name"
-            class="h-11 w-11 object-cover"
+            class="h-6 w-6 object-cover"
           />
           <span v-else class="text-xl">💊</span>
         </div>
