@@ -87,7 +87,7 @@
 
           <!-- Cart Section -->
           <div
-            class="w-96 flex flex-col h-full py-4 px-3 rounded-xl"
+            class="w-4/12 flex flex-col h-full py-4 px-3 rounded-xl"
             :style="{
               background: 'var(--sidebar-panel-bg)',
               border: '1px solid var(--sidebar-panel-border)',
@@ -199,6 +199,7 @@ import OpenShiftModal from '@/components/modals/OpenShiftModal.vue'
 import ShiftSelectionModal from '@/components/modals/ShiftSelectionModal.vue'
 import NoShiftOverlay from '@/components/modals/NoShiftOverlay.vue'
 import { useProductsStore } from '@/stores/products'
+import eventBus from '../utils/eventBus'
 
 const showBarcodes = ref(false)
 
@@ -566,6 +567,12 @@ const handleSaleTransaction = async (transactionData) => {
       // (docstatus 1) - fast mode submits right here, so refresh actual_qty
       // now rather than leaving the grid showing stale stock counts.
       productsStore.loadProductsFromFrappeDB(true)
+
+      // ShiftControl.vue's refreshShiftSummary() only runs when this event
+      // fires - nothing in the app was ever emitting it, so the
+      // "Transactions"/total badge in the top bar stayed stale until a
+      // full page reload re-fetched everything from scratch on mount.
+      eventBus.emit('invoice:created')
     } else {
       // Normal Mode: save draft فقط
       const invoiceResponse = await invoicesStore.saveInvoice(transactionData)
@@ -664,6 +671,7 @@ const handleReceiptPrinted = async (receiptDataParam) => {
       // Same reasoning as the fast-mode path - stock changes on submit,
       // which happens right here in normal mode.
       productsStore.loadProductsFromFrappeDB(true)
+      eventBus.emit('invoice:created')
     }
   } catch (error) {
     if (window.$toast) window.$toast.error(error.message || 'Failed to submit invoice')
