@@ -561,6 +561,11 @@ const handleSaleTransaction = async (transactionData) => {
         isSaved: invoiceResponse.status? 1 : 0,
 
       }
+
+      // Stock only actually changes once the invoice is submitted
+      // (docstatus 1) - fast mode submits right here, so refresh actual_qty
+      // now rather than leaving the grid showing stale stock counts.
+      productsStore.loadProductsFromFrappeDB(true)
     } else {
       // Normal Mode: save draft فقط
       const invoiceResponse = await invoicesStore.saveInvoice(transactionData)
@@ -656,6 +661,9 @@ const handleReceiptPrinted = async (receiptDataParam) => {
       // Normal Mode: submit دلوقتي
       await invoicesStore.proceedInvoice(receiptDataParam)
       if (window.$toast) window.$toast.success(`Invoice ${receiptDataParam.invoiceNo} submitted!`)
+      // Same reasoning as the fast-mode path - stock changes on submit,
+      // which happens right here in normal mode.
+      productsStore.loadProductsFromFrappeDB(true)
     }
   } catch (error) {
     if (window.$toast) window.$toast.error(error.message || 'Failed to submit invoice')
