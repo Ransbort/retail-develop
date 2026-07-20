@@ -123,7 +123,7 @@
   />
   <InvoicesDialog
     :show="showInvoicesDialog"
-    @close="showInvoicesDialog = false"
+    @close="handleCloseInvoicesDialog"
     @open-invoice="handleOpenDraftInvoice"
     @delete-draft="handleDeleteDraft"
     @select-return="handleSelectReturn"
@@ -274,9 +274,14 @@ const handleMenuChange = (menu) => {
       break
 
     case 'invoices':
-      activeMenu.value = 'return'
-      cartStore.mode = 'return'
-      cartStore.isReturn = 1
+      // Previously this set activeMenu/cartStore.mode to 'return' the
+      // instant the icon was clicked - before any invoice was actually
+      // selected. That made Cart.vue switch to its read-only ReturnSection
+      // immediately, blocking addToCart for the whole session if the
+      // dialog was then closed without picking anything (closing the
+      // dialog never reset mode back to 'sale'). Now we only open the
+      // dialog here; handleSelectReturn is what actually flips into
+      // return mode once a real invoice is chosen.
       showInvoicesDialog.value = !showInvoicesDialog.value
       console.log(
         "showInvoicesDialog.value",
@@ -291,6 +296,34 @@ const handleAddToCart = (product) => {
   if (!added) {
     window.$toast?.warning(__('Quantity exceeds available stock'))
   }
+}
+
+// Closing the Invoices dialog without picking a return invoice must not
+// leave the cart stuck in return mode - previously nothing reset
+// activeMenu/cartStore.mode here, which combined with the 'invoices' menu
+// case eagerly setting mode='return' on open, permanently blocked
+// addToCart (isReadOnly) until the user separately loaded then cleared a
+// return invoice.
+const handleCloseInvoicesDialog = () => {
+  showInvoicesDialog.value = false
+  if (!cartStore.returnInvoiceData) {
+    activeMenu.value = 'pos'
+    cartStore.mode = 'sale'
+    cartStore.isReturn = 0
+  }
+}
+
+// Referenced by InvoicesDialog's @select-return but was previously never
+// defined in this file at all - selecting a return invoice had no handler
+// here (any effect users saw came from InvoicesDialog/Cart doing it
+// independently). This is what should actually switch into return mode,
+// now that the 'invoices' menu click itself no longer does.
+const handleSelectReturn = (invoice) => {
+  if (!invoice) return
+  activeMenu.value = 'return'
+  cartStore.isReturn = 1
+  cartStore.loadReturnInvoice(invoice)  // sets cartStore.mode = 'return' internally
+  showInvoicesDialog.value = false
 }
 
 // Handle customer selected (from CustomerSection component)
