@@ -87,7 +87,7 @@
 
           <!-- Cart Section -->
           <div
-            class="w-4/12 flex flex-col h-full py-4 px-3 rounded-xl"
+            class="w-96 flex flex-col h-full py-4 px-3 rounded-xl"
             :style="{
               background: 'var(--sidebar-panel-bg)',
               border: '1px solid var(--sidebar-panel-border)',
