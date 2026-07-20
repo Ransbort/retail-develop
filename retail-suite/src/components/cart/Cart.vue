@@ -5,7 +5,7 @@
 -->
 <template>
   <div
-    class="rounded-3xl flex flex-col h-full shadow overflow-hidden"
+    class="w-96 rounded-3xl flex flex-col h-full shadow overflow-hidden"
     :style="{
       backgroundColor: 'var(--cart-bg)',
       borderColor:     'var(--cart-border)',
