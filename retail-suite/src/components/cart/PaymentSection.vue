@@ -205,7 +205,7 @@
           border: '1px solid var(--warning-border)'
         }"
       >
-        <div v-if="!showPartialOption" class="flex items-center justify-between w-full">
+        <div v-if="!showPartialOption" class="text-xs flex items-center justify-between w-full">
           <div
             role="button"
             tabindex="0"
