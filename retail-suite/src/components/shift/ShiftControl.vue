@@ -30,15 +30,15 @@
             dir="ltr"
           >
             <div class="flex items-center gap-1">
-              <UserIcon class="w-4 h-4" />
+              <UserIcon class="w-6 h-6" />
               <span>{{ currentShift.user }}</span>
             </div>
             <div class="flex items-center gap-1">
-              <ClockIcon class="w-4 h-4" />
+              <ClockIcon class="w-6 h-6" />
               <span>{{ shiftDuration }}</span>
             </div>
             <div class="flex items-center gap-1">
-              <ReceiptIcon class="w-4 h-4" />
+              <ReceiptIcon class="w-6 h-6" />
               <span>{{ currentShift.transactions.length || 0 }}</span>
               <span>{{ __('Transactions') }}</span>
             </div>
