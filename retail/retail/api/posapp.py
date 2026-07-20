@@ -610,7 +610,7 @@ def get_patient_prescriptions(patient):
     if not frappe.db.exists("Patient", patient):
         frappe.throw(_("Patient {0} not found").format(patient))
 
-    return frappe.db.get_all(
+    requests = frappe.db.get_all(
         "Medication Request",
         filters={
             "patient": patient,
@@ -621,10 +621,30 @@ def get_patient_prescriptions(patient):
         fields=[
             "name", "medication", "medication_item", "quantity",
             "qty_invoiced", "total_dispensable_quantity",
-            "dosage_form", "dosage", "period", "comment",
+            "dosage_form", "dosage", "period", "comment", "order_group",
         ],
         limit_page_length=100,
     )
+
+    # Medication Request's own `comment` field frequently comes back empty -
+    # ERPNext Healthcare copies dosage/dosage_form/period from the source
+    # Drug Prescription row (on the Patient Encounter, linked via
+    # `order_group`) when creating the Medication Request, but doesn't
+    # carry the comment over. Backfill it from that same Drug Prescription
+    # child row when possible.
+    for req in requests:
+        if not req.get("comment") and req.get("order_group"):
+            req["comment"] = frappe.db.get_value(
+                "Drug Prescription",
+                {
+                    "parent": req["order_group"],
+                    "parenttype": "Patient Encounter",
+                    "medication": req["medication"],
+                },
+                "comment",
+            )
+
+    return requests
 
 @frappe.whitelist()
 def get_item_price_and_stock(item_code, price_list, customer=None, warehouse=None):
