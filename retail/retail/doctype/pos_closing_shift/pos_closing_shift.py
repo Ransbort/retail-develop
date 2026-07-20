@@ -202,7 +202,19 @@ def make_closing_shift_from_opening(opening_shift :dict, closing_details :list):
         if inv.payments:
             for p in inv.payments:
                 mop = p.mode_of_payment
-                payments[mop].expected_amount += flt(p.amount)
+                # Return invoices (negative grand_total) can still store
+                # their refund as a POSITIVE amount in their own payments
+                # child table - the invoice's negative grand_total is what
+                # actually signals "this is a refund," not the payment row
+                # itself. get_shift_summary() already accounts for this;
+                # this loop didn't, so a return's refund was being ADDED
+                # to expected_amount instead of subtracted, double-counting
+                # it in the same direction as the original sale and
+                # producing a phantom cash difference at shift close.
+                payment_amount = flt(p.amount)
+                if flt(inv.grand_total) < 0 and payment_amount > 0:
+                    payment_amount = -payment_amount
+                payments[mop].expected_amount += payment_amount
 
         payment_entries = get_shift_invoice_payments(inv["name"])
         for pe in payment_entries:
